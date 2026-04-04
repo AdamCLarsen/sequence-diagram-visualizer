@@ -144,3 +144,6 @@ test-data/
 *.local.md
 
 .superpowers/
+
+# Sandbox worktrees
+.worktrees/
