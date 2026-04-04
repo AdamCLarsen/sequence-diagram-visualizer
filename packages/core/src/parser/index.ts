@@ -1,6 +1,7 @@
 import type {
   SequenceDiagramAST,
   Participant,
+  ParticipantBox,
   Message,
   StructuralBlock,
   Activation,
@@ -8,7 +9,7 @@ import type {
 } from './types'
 import { tokenize, parseMessageToken, type Token } from './tokenizer'
 
-export type { SequenceDiagramAST, Participant, Message, StructuralBlock, Activation, ArrowType }
+export type { SequenceDiagramAST, Participant, ParticipantBox, Message, StructuralBlock, Activation, ArrowType }
 
 /** Extract mermaid code block from markdown content */
 export function extractFromMarkdown(md: string): string | null {
@@ -30,6 +31,7 @@ class Parser {
   private pos = 0
   private participants: Map<string, Participant> = new Map()
   private participantOrder: string[] = []
+  private participantBoxes: ParticipantBox[] = []
   private messages: Message[] = []
   private blocks: StructuralBlock[] = []
   private activations: Activation[] = []
@@ -63,6 +65,7 @@ class Parser {
       title: this.title,
       autonumber: this.autonumber,
       participants: this.participantOrder.map((id) => this.participants.get(id)!),
+      participantBoxes: this.participantBoxes,
       messages: this.messages,
       blocks: this.blocks,
       activations: this.activations,
@@ -108,7 +111,12 @@ class Parser {
       case 'loop':
       case 'alt':
       case 'opt':
+      case 'rect':
         this.parseBlock(token.type, token.value, 0)
+        break
+
+      case 'box':
+        this.parseBox(token.value)
         break
 
       case 'note':
@@ -200,7 +208,7 @@ class Parser {
     }
   }
 
-  private parseBlock(type: 'loop' | 'alt' | 'opt', label: string, depth: number): void {
+  private parseBlock(type: 'loop' | 'alt' | 'opt' | 'rect', label: string, depth: number): void {
     const startSeq = this.sequenceIndex
     const children: StructuralBlock[] = []
     const elseClauses: { label: string; startSeq: number; endSeq: number }[] = []
@@ -224,12 +232,13 @@ class Parser {
 
         const block: StructuralBlock = {
           type,
-          label,
+          label: type === 'rect' ? '' : label,
           startSeq,
           endSeq: this.sequenceIndex > startSeq ? this.sequenceIndex - 1 : startSeq,
           depth,
           children: children.length > 0 ? children : undefined,
           elseClauses: elseClauses.length > 0 ? elseClauses : undefined,
+          color: type === 'rect' ? label : undefined,
         }
         this.blocks.push(block)
         return
@@ -250,7 +259,7 @@ class Parser {
       }
 
       // Nested blocks
-      if (token.type === 'loop' || token.type === 'alt' || token.type === 'opt') {
+      if (token.type === 'loop' || token.type === 'alt' || token.type === 'opt' || token.type === 'rect') {
         if (depth < 3) {
           this.parseBlock(token.type, token.value, depth + 1)
           this.pos++
@@ -271,12 +280,53 @@ class Parser {
     // Unclosed block — push what we have
     this.blocks.push({
       type,
-      label,
+      label: type === 'rect' ? '' : label,
       startSeq,
       endSeq: this.sequenceIndex > startSeq ? this.sequenceIndex - 1 : startSeq,
       depth,
       children: children.length > 0 ? children : undefined,
+      color: type === 'rect' ? label : undefined,
     })
+  }
+
+  private parseBox(value: string): void {
+    // Parse color and optional label from box value
+    // Formats: "rgba(100,255,180,0.15)", "Label rgba(...)", "Label", ""
+    let color = ''
+    let label: string | undefined
+
+    const rgbaMatch = value.match(/(rgba?\([^)]+\))/)
+    if (rgbaMatch) {
+      color = rgbaMatch[1]
+      label = value.replace(rgbaMatch[0], '').trim() || undefined
+    } else if (value) {
+      label = value
+    }
+
+    const participantIds: string[] = []
+
+    this.pos++
+    while (this.pos < this.tokens.length) {
+      const token = this.tokens[this.pos]
+
+      if (token.type === 'end') {
+        break
+      }
+
+      if (token.type === 'participant' || token.type === 'actor') {
+        this.addParticipant(token.value, token.type)
+        // Extract the participant id
+        const asMatch = token.value.match(/^(\S+)\s+as\s+/)
+        const id = asMatch ? asMatch[1] : token.value.trim()
+        participantIds.push(id)
+      }
+
+      this.pos++
+    }
+
+    if (participantIds.length > 0) {
+      this.participantBoxes.push({ color, label, participantIds })
+    }
   }
 
   private parseNote(value: string): void {

@@ -51,6 +51,14 @@ export interface BlockLayout {
   width: number
   height: number
   depth: number
+  color?: string
+}
+
+export interface ParticipantBoxLayout {
+  color: string
+  label?: string
+  x: number
+  width: number
 }
 
 export interface ActivationLayout {
@@ -69,4 +77,5 @@ export interface LayoutModel {
   rows: RowLayout[]
   blocks: BlockLayout[]
   activations: ActivationLayout[]
+  participantBoxes: ParticipantBoxLayout[]
 }

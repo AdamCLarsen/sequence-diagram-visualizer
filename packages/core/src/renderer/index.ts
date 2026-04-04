@@ -7,7 +7,12 @@ import { drawLabel } from './labels'
 import { drawHeaders } from './headers'
 import { drawLifelines } from './lifelines'
 import { drawBlocks } from './blocks'
+import { drawParticipantBoxes } from './participant-boxes'
 import { drawScrollbars } from '../viewport/scrollbars'
+
+export interface RenderOptions {
+  showOffscreenLabels?: boolean
+}
 
 export function render(
   ctx: CanvasRenderingContext2D,
@@ -17,6 +22,7 @@ export function render(
   canvasWidth: number,
   canvasHeight: number,
   theme: Theme,
+  renderOptions: RenderOptions = {},
 ): void {
   const { zoom, x: camX, y: camY } = camera
 
@@ -30,9 +36,13 @@ export function render(
   ctx.scale(zoom, zoom)
   ctx.translate(-camX, -camY)
 
-  // Lifelines — extend from visible top to visible bottom
   const viewportTop = camY
   const viewportBottom = camY + canvasHeight / zoom
+
+  // Participant box backgrounds — full height colored strips
+  drawParticipantBoxes(ctx, layoutModel.participantBoxes, viewportTop, viewportBottom, layoutModel.height)
+
+  // Lifelines — extend from visible top to visible bottom
   const lifelineStart = Math.min(layoutModel.headerHeight, viewportTop)
   drawLifelines(ctx, layoutModel.columns, lifelineStart, layoutModel.height, theme, viewportBottom)
 
@@ -53,7 +63,7 @@ export function render(
   for (const row of layoutModel.rows) {
     if (!row.label.text) continue
     drawArrow(ctx, row.arrow.fromX, row.arrow.toX, row.y + row.height / 2, row.arrow.type, theme)
-    drawLabel(ctx, row, camX, canvasWidth, zoom, ast.autonumber, theme)
+    drawLabel(ctx, row, camX, canvasWidth, zoom, ast.autonumber, theme, renderOptions.showOffscreenLabels ?? true)
   }
 
   ctx.restore()
@@ -63,7 +73,7 @@ export function render(
   ctx.scale(zoom, zoom)
   ctx.translate(-camX, 0)
 
-  drawHeaders(ctx, layoutModel.columns, ast.participants, layoutModel.headerHeight, theme, camX, canvasWidth, zoom)
+  drawHeaders(ctx, layoutModel.columns, ast.participants, layoutModel.headerHeight, theme, camX, canvasWidth, zoom, layoutModel.participantBoxes)
 
   ctx.restore()
 

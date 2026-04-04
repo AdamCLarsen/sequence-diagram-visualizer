@@ -1,5 +1,5 @@
 import type { SequenceDiagramAST } from '../parser/types'
-import type { TextMeasurer, LayoutConfig, LayoutModel, ActivationLayout } from './types'
+import type { TextMeasurer, LayoutConfig, LayoutModel, ActivationLayout, ParticipantBoxLayout } from './types'
 import { DEFAULT_LAYOUT_CONFIG } from './types'
 import { layoutColumns } from './columns'
 import { layoutRows } from './rows'
@@ -17,6 +17,7 @@ export function layout(
   const rows = layoutRows(ast.messages, columns, config, ast.blocks)
   const blocks = layoutBlocks(ast.blocks, rows, columns, config)
   const activations = layoutActivations(ast, columns, rows, config)
+  const participantBoxes = layoutParticipantBoxes(ast, columns)
 
   const totalWidth = columns.length > 0
     ? columns[columns.length - 1].x + columns[columns.length - 1].width / 2
@@ -35,6 +36,7 @@ export function layout(
     rows,
     blocks,
     activations,
+    participantBoxes,
   }
 }
 
@@ -68,6 +70,34 @@ function layoutActivations(
       startY: startRow.y + startRow.height / 2 - 8,
       endY: (endRow ? endRow.y + endRow.height / 2 : startRow.y + config.rowHeight) + 8,
       nestLevel: level,
+    })
+  }
+
+  return result
+}
+
+function layoutParticipantBoxes(
+  ast: SequenceDiagramAST,
+  columns: { participantId: string; x: number; width: number }[],
+): ParticipantBoxLayout[] {
+  const colMap = new Map(columns.map((c) => [c.participantId, c]))
+  const result: ParticipantBoxLayout[] = []
+
+  for (const box of ast.participantBoxes) {
+    const cols = box.participantIds.map((id) => colMap.get(id)).filter(Boolean) as typeof columns
+    if (cols.length === 0) continue
+
+    const leftCol = cols[0]
+    const rightCol = cols[cols.length - 1]
+    const x = leftCol.x - leftCol.width / 2
+    const rightEdge = rightCol.x + rightCol.width / 2
+    const width = rightEdge - x
+
+    result.push({
+      color: box.color,
+      label: box.label,
+      x,
+      width,
     })
   }
 

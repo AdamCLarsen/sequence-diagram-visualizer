@@ -3,7 +3,7 @@ import type { SequenceDiagramAST } from './parser/types'
 import { layout } from './layout'
 import type { LayoutModel, TextMeasurer } from './layout/types'
 import { DEFAULT_LAYOUT_CONFIG } from './layout/types'
-import { render } from './renderer'
+import { render, type RenderOptions } from './renderer'
 import { getTheme, type Theme } from './renderer/theme'
 import { createCamera, resetCamera, clampZoom, type Camera } from './viewport/camera'
 import { attachInputHandlers } from './viewport/input'
@@ -27,6 +27,7 @@ export interface Viewer {
   resetView(): void
   resize(): void
   destroy(): void
+  showOffscreenLabels: boolean
   readonly camera: Camera
   readonly ast: SequenceDiagramAST | null
   readonly layout: LayoutModel | null
@@ -43,6 +44,7 @@ export function createViewer(
   let currentAST: SequenceDiagramAST | null = null
   let currentLayout: LayoutModel | null = null
   let rafId: number | null = null
+  let offscreenLabels = true
 
   const measurer: TextMeasurer = {
     measure(text: string, font: string): number {
@@ -61,7 +63,7 @@ export function createViewer(
 
   function doRender(): void {
     if (!currentAST || !currentLayout) return
-    render(ctx, currentLayout, currentAST, currentCamera, canvas.width, canvas.height, theme)
+    render(ctx, currentLayout, currentAST, currentCamera, canvas.width, canvas.height, theme, { showOffscreenLabels: offscreenLabels })
   }
 
   function updateCanvasSize(): void {
@@ -129,6 +131,9 @@ export function createViewer(
       resizeObserver.disconnect()
       if (rafId !== null) cancelAnimationFrame(rafId)
     },
+
+    get showOffscreenLabels() { return offscreenLabels },
+    set showOffscreenLabels(v: boolean) { offscreenLabels = v; scheduleRender() },
 
     get camera() { return currentCamera },
     get ast() { return currentAST },

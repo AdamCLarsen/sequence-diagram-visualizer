@@ -38,6 +38,7 @@ export function layoutBlocks(
       width: totalWidth - indent * 2 - 20,
       height: endY - y,
       depth: block.depth,
+      color: block.color,
     })
 
     // Layout else clause dividers as separate blocks
@@ -67,6 +68,11 @@ export function layoutBlocks(
   return result
 }
 
+function noteHeight(label: string): number {
+  const lines = label.split(/<br\s*\/?>/)
+  return Math.max(30, 16 + lines.length * 16)
+}
+
 function layoutNote(
   block: StructuralBlock,
   columns: ColumnLayout[],
@@ -83,6 +89,7 @@ function layoutNote(
 
   let x: number
   const noteW = config.noteWidth
+  const h = noteHeight(block.label)
 
   if (block.placement === 'left of') {
     x = firstTarget.x - firstTarget.width / 2 - noteW - 5
@@ -102,7 +109,7 @@ function layoutNote(
           x: Math.max(5, centerX - span / 2),
           y: row ? row.y - 5 : 0,
           width: span,
-          height: 30,
+          height: h,
           depth: 0,
         }
       }
@@ -116,7 +123,7 @@ function layoutNote(
     x,
     y: row ? row.y - 5 : 0,
     width: noteW,
-    height: 30,
+    height: h,
     depth: 0,
   }
 }

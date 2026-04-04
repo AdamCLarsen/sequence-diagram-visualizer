@@ -11,10 +11,21 @@ export function drawBlocks(
       drawNote(ctx, block, theme)
     } else if (block.type === 'else') {
       drawElseDivider(ctx, block, theme)
+    } else if (block.type === 'rect') {
+      drawRectBlock(ctx, block)
     } else {
       drawStructuralBlock(ctx, block, theme)
     }
   }
+}
+
+function drawRectBlock(
+  ctx: CanvasRenderingContext2D,
+  block: BlockLayout,
+): void {
+  if (!block.color) return
+  ctx.fillStyle = block.color
+  ctx.fillRect(block.x, block.y, block.width, block.height)
 }
 
 function drawStructuralBlock(
@@ -85,12 +96,23 @@ function drawNote(
   ctx.strokeStyle = theme.noteBorder
   ctx.stroke()
 
-  // Text
+  // Text (supports <br/> line breaks)
   ctx.font = theme.noteFont
   ctx.fillStyle = theme.noteText
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText(block.label, block.x + block.width / 2, block.y + block.height / 2, block.width - 10)
+
+  const lines = block.label.split(/<br\s*\/?>/)
+  if (lines.length <= 1) {
+    ctx.fillText(block.label, block.x + block.width / 2, block.y + block.height / 2, block.width - 10)
+  } else {
+    const lineHeight = 16
+    const totalTextHeight = lines.length * lineHeight
+    const startY = block.y + (block.height - totalTextHeight) / 2 + lineHeight / 2
+    for (let i = 0; i < lines.length; i++) {
+      ctx.fillText(lines[i].trim(), block.x + block.width / 2, startY + i * lineHeight, block.width - 10)
+    }
+  }
 }
 
 function drawElseDivider(

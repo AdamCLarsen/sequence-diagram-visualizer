@@ -11,6 +11,7 @@ export function drawLabel(
   zoom: number,
   autonumber: boolean,
   theme: Theme,
+  showOffscreenLabels = true,
 ): void {
   if (!row.label.text) return
 
@@ -22,11 +23,20 @@ export function drawLabel(
   let text: string
   let isClamped = false
 
+  // Check if either endpoint lifeline is visible on screen
+  const viewLeftEdge = cameraX
+  const viewRightEdge = cameraX + viewportWidth / zoom
+  const hasVisibleLifeline =
+    (row.arrow.fromX >= viewLeftEdge && row.arrow.fromX <= viewRightEdge) ||
+    (row.arrow.toX >= viewLeftEdge && row.arrow.toX <= viewRightEdge)
+
   if (midX < viewLeft) {
+    if (!showOffscreenLabels && !hasVisibleLifeline) return
     drawX = viewLeft
     text = '\u2190 ' + row.label.text
     isClamped = true
   } else if (midX > viewRight) {
+    if (!showOffscreenLabels && !hasVisibleLifeline) return
     drawX = viewRight
     text = row.label.text + ' \u2192'
     isClamped = true
@@ -52,6 +62,12 @@ export function drawLabel(
     x = drawX - textWidth
   } else {
     x = drawX - textWidth / 2
+  }
+
+  // Prevent text from being clipped by the visible left edge
+  const leftEdge = cameraX + 4
+  if (x < leftEdge) {
+    x = leftEdge
   }
 
   // Background for readability

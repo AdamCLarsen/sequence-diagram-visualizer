@@ -147,3 +147,6 @@ test-data/
 
 # Sandbox worktrees
 .worktrees/
+
+# Project temp directory
+tmp/

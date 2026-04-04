@@ -6,6 +6,8 @@ export interface ShelfOptions {
   onZoomOut: () => void
   onZoomReset: () => void
   getZoom: () => number
+  onOffscreenLabelsToggle: (enabled: boolean) => void
+  getOffscreenLabels: () => boolean
   onWidthChange?: (widthPx: number) => void
 }
 
@@ -27,6 +29,7 @@ const ICONS = {
   zoomIn: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/></svg>',
   zoomOut: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="8" x2="14" y1="11" y2="11"/></svg>',
   scan: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/></svg>',
+  tag: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>',
 }
 
 export function createShelf(options: ShelfOptions): Shelf {
@@ -87,6 +90,17 @@ export function createShelf(options: ShelfOptions): Shelf {
     el.appendChild(btn(ICONS.scan, options.onZoomReset, 'Reset zoom', !collapsed ? zoomPct : ''))
     // Tag the reset button so we can update the label
     el.lastElementChild!.id = 'shelf-zoom-btn'
+
+    // Offscreen labels toggle
+    const labelsOn = options.getOffscreenLabels()
+    const labelsBtn = btn(
+      ICONS.tag,
+      () => { options.onOffscreenLabelsToggle(!options.getOffscreenLabels()); render() },
+      'Toggle off-screen labels',
+      !collapsed ? (labelsOn ? 'Labels: On' : 'Labels: Off') : '',
+    )
+    if (!labelsOn) labelsBtn.style.opacity = '0.4'
+    el.appendChild(labelsBtn)
 
     // File name indicator (spacer + bottom)
     const spacer = document.createElement('div')

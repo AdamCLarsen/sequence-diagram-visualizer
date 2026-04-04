@@ -1,4 +1,4 @@
-import type { ColumnLayout } from '../layout/types'
+import type { ColumnLayout, ParticipantBoxLayout } from '../layout/types'
 import type { Participant } from '../parser/types'
 import type { Theme } from './theme'
 
@@ -14,6 +14,7 @@ export function drawHeaders(
   camX?: number,
   canvasWidth?: number,
   zoom?: number,
+  participantBoxes?: ParticipantBoxLayout[],
 ): void {
   const participantMap = new Map(participants.map((p) => [p.id, p]))
 
@@ -23,6 +24,15 @@ export function drawHeaders(
   const viewWidth = (canvasWidth ?? 4000) / z
   ctx.fillStyle = theme.headerBackground
   ctx.fillRect(cx - 10, 0, viewWidth + 20, headerHeight)
+
+  // Draw participant box backgrounds in header area
+  if (participantBoxes) {
+    for (const box of participantBoxes) {
+      if (!box.color) continue
+      ctx.fillStyle = box.color
+      ctx.fillRect(box.x, 0, box.width, headerHeight)
+    }
+  }
 
   // Participant boxes
   for (const col of columns) {

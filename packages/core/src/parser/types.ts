@@ -16,8 +16,14 @@ export interface Message {
   sequenceIndex: number
 }
 
+export interface ParticipantBox {
+  color: string
+  label?: string
+  participantIds: string[]
+}
+
 export interface StructuralBlock {
-  type: 'loop' | 'alt' | 'opt' | 'note'
+  type: 'loop' | 'alt' | 'opt' | 'note' | 'rect'
   label: string
   startSeq: number
   endSeq: number
@@ -26,6 +32,7 @@ export interface StructuralBlock {
   elseClauses?: { label: string; startSeq: number; endSeq: number }[]
   placement?: 'left of' | 'right of' | 'over'
   targetParticipants?: string[]
+  color?: string
 }
 
 export interface Activation {
@@ -38,6 +45,7 @@ export interface SequenceDiagramAST {
   title?: string
   autonumber: boolean
   participants: Participant[]
+  participantBoxes: ParticipantBox[]
   messages: Message[]
   blocks: StructuralBlock[]
   activations: Activation[]

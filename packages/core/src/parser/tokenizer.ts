@@ -12,6 +12,8 @@ export type TokenType =
   | 'else'
   | 'opt'
   | 'note'
+  | 'box'
+  | 'rect'
   | 'end'
   | 'comment'
   | 'empty'
@@ -33,6 +35,7 @@ export function tokenize(text: string): Token[] {
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i]
     const trimmed = raw.trim()
+    const lower = trimmed.toLowerCase()
     const lineNum = i + 1
 
     if (!trimmed || trimmed === '') {
@@ -45,71 +48,83 @@ export function tokenize(text: string): Token[] {
       continue
     }
 
-    if (trimmed === 'sequenceDiagram') {
+    if (lower === 'sequencediagram') {
       tokens.push({ type: 'sequenceDiagram', raw, value: '', line: lineNum })
       continue
     }
 
-    if (trimmed.startsWith('title')) {
-      const value = trimmed.replace(/^title\s*:?\s*/, '')
+    if (lower.startsWith('title')) {
+      const value = trimmed.replace(/^title\s*:?\s*/i, '')
       tokens.push({ type: 'title', raw, value, line: lineNum })
       continue
     }
 
-    if (trimmed === 'autonumber') {
+    if (lower === 'autonumber') {
       tokens.push({ type: 'autonumber', raw, value: '', line: lineNum })
       continue
     }
 
-    if (trimmed.startsWith('participant ') || trimmed.startsWith('participant\t')) {
+    if (lower.startsWith('participant ') || lower.startsWith('participant\t')) {
       const value = trimmed.slice('participant '.length).trim()
       tokens.push({ type: 'participant', raw, value, line: lineNum })
       continue
     }
 
-    if (trimmed.startsWith('actor ') || trimmed.startsWith('actor\t')) {
+    if (lower.startsWith('actor ') || lower.startsWith('actor\t')) {
       const value = trimmed.slice('actor '.length).trim()
       tokens.push({ type: 'actor', raw, value, line: lineNum })
       continue
     }
 
-    if (trimmed.startsWith('activate ')) {
+    if (lower.startsWith('activate ')) {
       tokens.push({ type: 'activate', raw, value: trimmed.slice('activate '.length).trim(), line: lineNum })
       continue
     }
 
-    if (trimmed.startsWith('deactivate ')) {
+    if (lower.startsWith('deactivate ')) {
       tokens.push({ type: 'deactivate', raw, value: trimmed.slice('deactivate '.length).trim(), line: lineNum })
       continue
     }
 
-    if (trimmed.startsWith('loop ')) {
+    if (lower.startsWith('loop ')) {
       tokens.push({ type: 'loop', raw, value: trimmed.slice('loop '.length).trim(), line: lineNum })
       continue
     }
 
-    if (trimmed.startsWith('alt ')) {
+    if (lower.startsWith('alt ')) {
       tokens.push({ type: 'alt', raw, value: trimmed.slice('alt '.length).trim(), line: lineNum })
       continue
     }
 
-    if (trimmed.startsWith('else')) {
+    if (lower.startsWith('else')) {
       const value = trimmed.slice('else'.length).trim()
       tokens.push({ type: 'else', raw, value, line: lineNum })
       continue
     }
 
-    if (trimmed.startsWith('opt ')) {
+    if (lower.startsWith('opt ')) {
       tokens.push({ type: 'opt', raw, value: trimmed.slice('opt '.length).trim(), line: lineNum })
       continue
     }
 
-    if (trimmed.startsWith('note ')) {
+    if (lower.startsWith('note ')) {
       tokens.push({ type: 'note', raw, value: trimmed.slice('note '.length).trim(), line: lineNum })
       continue
     }
 
-    if (trimmed === 'end') {
+    if (lower.startsWith('box')) {
+      const value = trimmed.slice('box'.length).trim()
+      tokens.push({ type: 'box', raw, value, line: lineNum })
+      continue
+    }
+
+    if (lower.startsWith('rect ') || lower === 'rect') {
+      const value = trimmed.slice('rect'.length).trim()
+      tokens.push({ type: 'rect', raw, value, line: lineNum })
+      continue
+    }
+
+    if (lower === 'end') {
       tokens.push({ type: 'end', raw, value: '', line: lineNum })
       continue
     }

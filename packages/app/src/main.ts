@@ -1,11 +1,34 @@
-import { createViewer, extractFromMarkdown, type Viewer } from '@seq-viz/core'
+import { createViewer, extractFromMarkdown, type Viewer, type Camera } from '@seq-viz/core'
 import { openFile, reloadFile, readDroppedFile, type FileLoadResult } from './file-loader'
 import { createPasteInput, type PasteInput } from './paste-input'
 import { createShelf } from './shelf'
 
+const STATE_KEY = 'seq-viz-state'
+const LABELS_KEY = 'seq-viz-offscreen-labels'
+const CAMERA_SAVE_MS = 300
+
+interface SavedState {
+  diagram: string
+  name: string
+  camera: { x: number; y: number; zoom: number }
+}
+
+function loadSavedState(): SavedState | null {
+  try {
+    const raw = localStorage.getItem(STATE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+function saveState(patch: Partial<SavedState>) {
+  const current = loadSavedState()
+  localStorage.setItem(STATE_KEY, JSON.stringify({ ...current, ...patch }))
+}
+
 let viewer: Viewer
 let currentHandle: FileSystemFileHandle | null = null
 let pasteInput: PasteInput | null = null
+let cameraSaveTimer: ReturnType<typeof setTimeout> | null = null
 
 function init() {
   const canvas = document.getElementById('diagram-canvas') as HTMLCanvasElement
@@ -18,17 +41,28 @@ function init() {
   viewer = createViewer(canvas, {
     theme: 'light',
     onError: (err) => console.error('[seq-viz]', err),
-    onCameraChange: () => shelf?.updateZoom(),
+    onCameraChange: (cam: Camera) => {
+      shelf?.updateZoom()
+      if (cameraSaveTimer) clearTimeout(cameraSaveTimer)
+      cameraSaveTimer = setTimeout(() => {
+        saveState({ camera: { x: cam.x, y: cam.y, zoom: cam.zoom } })
+      }, CAMERA_SAVE_MS)
+    },
   })
 
   shelf = createShelf({
     onOpen: handleOpen,
     onReload: handleReload,
     onPasteToggle: (active) => handlePasteToggle(active, pasteContainer),
-    onZoomIn: () => { viewer.zoomTo(viewer.camera.zoom * 1.2); shelf.updateZoom() },
-    onZoomOut: () => { viewer.zoomTo(viewer.camera.zoom / 1.2); shelf.updateZoom() },
-    onZoomReset: () => { viewer.resetView(); shelf.updateZoom() },
+    onZoomIn: () => { viewer.zoomTo(viewer.camera.zoom * 1.2); shelf.updateZoom(); saveCameraState() },
+    onZoomOut: () => { viewer.zoomTo(viewer.camera.zoom / 1.2); shelf.updateZoom(); saveCameraState() },
+    onZoomReset: () => { viewer.resetView(); shelf.updateZoom(); saveCameraState() },
     getZoom: () => viewer.camera.zoom,
+    onOffscreenLabelsToggle: (enabled) => {
+      viewer.showOffscreenLabels = enabled
+      localStorage.setItem(LABELS_KEY, JSON.stringify(enabled))
+    },
+    getOffscreenLabels: () => viewer.showOffscreenLabels,
     onWidthChange: (widthPx) => {
       canvas.style.left = widthPx + 'px'
       canvas.style.width = `calc(100vw - ${widthPx}px)`
@@ -55,12 +89,26 @@ function init() {
     }
   })
 
+  // Restore offscreen labels setting
+  const labelsStored = localStorage.getItem(LABELS_KEY)
+  if (labelsStored !== null) {
+    viewer.showOffscreenLabels = JSON.parse(labelsStored)
+  }
+
   // Expose viewer for dev tooling (Playwright, console)
   ;(window as any).__viewer = viewer
 
-  // Load demo on start if no stored paste
-  const stored = localStorage.getItem('seq-viz-paste')
-  if (!stored) {
+  // Restore saved state or fall back to demo
+  const saved = loadSavedState()
+  if (saved?.diagram) {
+    loadContent({ content: saved.diagram, name: saved.name ?? 'untitled' }, false)
+    shelf.setFileName(saved.name ?? null)
+    if (saved.camera) {
+      viewer.zoomTo(saved.camera.zoom)
+      viewer.panTo(saved.camera.x, saved.camera.y)
+      shelf.updateZoom()
+    }
+  } else {
     loadContent({ content: DEMO_DIAGRAM, name: 'demo' })
   }
 
@@ -79,6 +127,7 @@ function init() {
     try {
       const content = await reloadFile(currentHandle)
       viewer.load(maybeExtractMermaid(content, 'reload.md'))
+      saveState({ diagram: content, camera: { x: 0, y: 0, zoom: 1 } })
     } catch (err) {
       console.error('[seq-viz] reload failed', err)
     }
@@ -90,6 +139,7 @@ function init() {
       canvas.classList.add('hidden')
       pasteInput = createPasteInput(container, (text) => {
         viewer.load(text)
+        saveState({ diagram: text, name: 'paste', camera: { x: 0, y: 0, zoom: 1 } })
         canvas.classList.remove('hidden')
         viewer.resize()
       })
@@ -103,9 +153,17 @@ function init() {
   }
 }
 
-function loadContent(result: FileLoadResult) {
+function saveCameraState() {
+  const cam = viewer.camera
+  saveState({ camera: { x: cam.x, y: cam.y, zoom: cam.zoom } })
+}
+
+function loadContent(result: FileLoadResult, persist = true) {
   const text = maybeExtractMermaid(result.content, result.name)
   viewer.load(text)
+  if (persist) {
+    saveState({ diagram: result.content, name: result.name, camera: { x: 0, y: 0, zoom: 1 } })
+  }
 }
 
 function maybeExtractMermaid(content: string, name: string): string {
