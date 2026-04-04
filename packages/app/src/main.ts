@@ -55,6 +55,9 @@ function init() {
     }
   })
 
+  // Expose viewer for dev tooling (Playwright, console)
+  ;(window as any).__viewer = viewer
+
   // Load demo on start if no stored paste
   const stored = localStorage.getItem('seq-viz-paste')
   if (!stored) {

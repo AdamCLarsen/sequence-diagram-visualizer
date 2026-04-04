@@ -23,6 +23,7 @@ export interface ViewerOptions {
 export interface Viewer {
   load(text: string): void
   zoomTo(level: number): void
+  panTo(x: number, y: number): void
   resetView(): void
   resize(): void
   destroy(): void
@@ -105,6 +106,11 @@ export function createViewer(
 
     zoomTo(level: number): void {
       currentCamera = { ...currentCamera, zoom: clampZoom(level) }
+      scheduleRender()
+    },
+
+    panTo(x: number, y: number): void {
+      currentCamera = { ...currentCamera, x, y }
       scheduleRender()
     },
 
