@@ -68,7 +68,7 @@ create_container() {
         -w /workspace \
         -it \
         "$IMAGE_NAME" \
-        bash -c "tmux new-session -d -s $TMUX_SESSION; sleep infinity"
+        bash -c "tmux new-session -d -s '$TMUX_SESSION'; sleep infinity"
     info "Container created."
 }
 
@@ -111,6 +111,7 @@ cmd_destroy() {
 }
 
 cmd_rebuild() {
+    preflight
     cmd_destroy
     info "Removing image '$IMAGE_NAME'..."
     podman rmi -f "$IMAGE_NAME" 2>/dev/null || true
