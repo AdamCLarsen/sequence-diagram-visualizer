@@ -1,0 +1,27 @@
+FROM ubuntu:24.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Install base packages
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    tmux \
+    build-essential \
+    ca-certificates \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js LTS (22.x) via nodesource
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Claude Code globally
+RUN npm install -g @anthropic-ai/claude-code
+
+# Create non-root user (UID will be remapped by --userns=keep-id at runtime)
+RUN useradd -m -s /bin/bash user
+
+USER user
+WORKDIR /workspace
