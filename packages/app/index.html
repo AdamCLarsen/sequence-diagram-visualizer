@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sequence Diagram Visualizer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #diagram-canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body class="h-full bg-white">
+  <canvas id="diagram-canvas"></canvas>
+  <div id="paste-container" class="hidden fixed inset-0 left-10 z-40"></div>
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>
