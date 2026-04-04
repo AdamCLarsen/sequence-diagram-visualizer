@@ -28,6 +28,7 @@ export interface Viewer {
   resize(): void
   destroy(): void
   showOffscreenLabels: boolean
+  showSourceLabels: boolean
   readonly camera: Camera
   readonly ast: SequenceDiagramAST | null
   readonly layout: LayoutModel | null
@@ -45,6 +46,7 @@ export function createViewer(
   let currentLayout: LayoutModel | null = null
   let rafId: number | null = null
   let offscreenLabels = true
+  let sourceLabels = false
 
   const measurer: TextMeasurer = {
     measure(text: string, font: string): number {
@@ -63,7 +65,7 @@ export function createViewer(
 
   function doRender(): void {
     if (!currentAST || !currentLayout) return
-    render(ctx, currentLayout, currentAST, currentCamera, canvas.width, canvas.height, theme, { showOffscreenLabels: offscreenLabels })
+    render(ctx, currentLayout, currentAST, currentCamera, canvas.width, canvas.height, theme, { showOffscreenLabels: offscreenLabels, showSourceLabels: sourceLabels })
   }
 
   function updateCanvasSize(): void {
@@ -134,6 +136,9 @@ export function createViewer(
 
     get showOffscreenLabels() { return offscreenLabels },
     set showOffscreenLabels(v: boolean) { offscreenLabels = v; scheduleRender() },
+
+    get showSourceLabels() { return sourceLabels },
+    set showSourceLabels(v: boolean) { sourceLabels = v; scheduleRender() },
 
     get camera() { return currentCamera },
     get ast() { return currentAST },

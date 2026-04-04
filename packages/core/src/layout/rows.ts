@@ -74,6 +74,8 @@ export function layoutRows(
           midX,
           y: rowY - 8,
         },
+        fromLabel: fromCol.label,
+        toLabel: toCol.label,
       })
     } else {
       // Spacer row for notes and other non-message items
@@ -83,6 +85,8 @@ export function layoutRows(
         height,
         arrow: { fromX: 0, toX: 0, type: '->>' },
         label: { text: '', midX: 0, y: 0 },
+        fromLabel: '',
+        toLabel: '',
       })
     }
 

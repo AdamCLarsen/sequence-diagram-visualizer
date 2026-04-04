@@ -12,6 +12,7 @@ export function drawLabel(
   autonumber: boolean,
   theme: Theme,
   showOffscreenLabels = true,
+  showSourceLabels = false,
 ): void {
   if (!row.label.text) return
 
@@ -64,8 +65,12 @@ export function drawLabel(
     x = drawX - textWidth / 2
   }
 
-  // Prevent text from being clipped by the visible left edge
+  // Prevent text from being clipped by the visible edges
   const leftEdge = cameraX + 4
+  const rightEdge = cameraX + viewportWidth / zoom - 4
+  if (x + textWidth > rightEdge) {
+    x = rightEdge - textWidth
+  }
   if (x < leftEdge) {
     x = leftEdge
   }
@@ -96,6 +101,34 @@ export function drawLabel(
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText(badgeText, badgeX + badgeW / 2, badgeY + badgeH / 2)
+  }
+
+  // Draw source label above clamped tag when source lifeline is off-screen
+  if (showSourceLabels && isClamped && row.fromLabel) {
+    const sourceOffLeft = row.arrow.fromX < viewLeftEdge
+    const sourceOffRight = row.arrow.fromX > viewRightEdge
+    if (sourceOffLeft || sourceOffRight) {
+      const arrow = sourceOffLeft ? '\u2190 ' : ' \u2192'
+      const sourceText = sourceOffLeft ? arrow + row.fromLabel : row.fromLabel + arrow
+      ctx.font = theme.sourceLabelFont
+      const srcWidth = ctx.measureText(sourceText).width
+
+      // Position above the main label
+      const srcY = row.label.y - 14
+
+      // Background
+      ctx.fillStyle = theme.background
+      ctx.globalAlpha = 0.85
+      ctx.fillRect(x - pad, srcY - 10, srcWidth + pad * 2, 14)
+      ctx.globalAlpha = 1.0
+
+      // Text
+      ctx.fillStyle = theme.sourceLabelText
+      ctx.font = theme.sourceLabelFont
+      ctx.textAlign = 'left'
+      ctx.textBaseline = 'alphabetic'
+      ctx.fillText(sourceText, x, srcY)
+    }
   }
 
   // Draw label text

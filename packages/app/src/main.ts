@@ -5,6 +5,7 @@ import { createShelf } from './shelf'
 
 const STATE_KEY = 'seq-viz-state'
 const LABELS_KEY = 'seq-viz-offscreen-labels'
+const SOURCE_LABELS_KEY = 'seq-viz-source-labels'
 const CAMERA_SAVE_MS = 300
 
 interface SavedState {
@@ -63,6 +64,11 @@ function init() {
       localStorage.setItem(LABELS_KEY, JSON.stringify(enabled))
     },
     getOffscreenLabels: () => viewer.showOffscreenLabels,
+    onSourceLabelsToggle: (enabled) => {
+      viewer.showSourceLabels = enabled
+      localStorage.setItem(SOURCE_LABELS_KEY, JSON.stringify(enabled))
+    },
+    getSourceLabels: () => viewer.showSourceLabels,
     onWidthChange: (widthPx) => {
       canvas.style.left = widthPx + 'px'
       canvas.style.width = `calc(100vw - ${widthPx}px)`
@@ -89,11 +95,16 @@ function init() {
     }
   })
 
-  // Restore offscreen labels setting
+  // Restore label settings
   const labelsStored = localStorage.getItem(LABELS_KEY)
   if (labelsStored !== null) {
     viewer.showOffscreenLabels = JSON.parse(labelsStored)
   }
+  const srcLabelsStored = localStorage.getItem(SOURCE_LABELS_KEY)
+  if (srcLabelsStored !== null) {
+    viewer.showSourceLabels = JSON.parse(srcLabelsStored)
+  }
+  shelf.refresh()
 
   // Expose viewer for dev tooling (Playwright, console)
   ;(window as any).__viewer = viewer

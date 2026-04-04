@@ -103,11 +103,12 @@ function layoutNote(
         const pad = 20
         const centerX = (firstTarget.x + last.x) / 2
         const span = Math.max(last.x - firstTarget.x + pad * 2, noteW)
+        const noteY = row ? Math.max(config.headerHeight + 2, row.y - 5) : config.headerHeight + 2
         return {
           type: 'note',
           label: block.label,
           x: Math.max(5, centerX - span / 2),
-          y: row ? row.y - 5 : 0,
+          y: noteY,
           width: span,
           height: h,
           depth: 0,
@@ -117,11 +118,12 @@ function layoutNote(
     x = Math.max(5, firstTarget.x - noteW / 2)
   }
 
+  const noteY = row ? Math.max(config.headerHeight + 2, row.y - 5) : config.headerHeight + 2
   return {
     type: 'note',
     label: block.label,
     x,
-    y: row ? row.y - 5 : 0,
+    y: noteY,
     width: noteW,
     height: h,
     depth: 0,

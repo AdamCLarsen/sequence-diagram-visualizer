@@ -1,18 +1,25 @@
 import type { BlockLayout } from '../layout/types'
 import type { Theme } from './theme'
 
+export interface BlockViewport {
+  camX: number
+  canvasWidth: number
+  zoom: number
+}
+
 export function drawBlocks(
   ctx: CanvasRenderingContext2D,
   blocks: BlockLayout[],
   theme: Theme,
+  viewport?: BlockViewport,
 ): void {
   for (const block of blocks) {
     if (block.type === 'note') {
-      drawNote(ctx, block, theme)
+      drawNote(ctx, block, theme, viewport)
     } else if (block.type === 'else') {
       drawElseDivider(ctx, block, theme)
     } else if (block.type === 'rect') {
-      drawRectBlock(ctx, block)
+      drawRectBlock(ctx, block, theme)
     } else {
       drawStructuralBlock(ctx, block, theme)
     }
@@ -22,10 +29,39 @@ export function drawBlocks(
 function drawRectBlock(
   ctx: CanvasRenderingContext2D,
   block: BlockLayout,
+  theme: Theme,
 ): void {
   if (!block.color) return
-  ctx.fillStyle = block.color
+
+  // Adapt the fill color for the current background. Colors authored for
+  // dark themes (e.g. rgba(255,255,255,0.06)) are invisible on light
+  // backgrounds, so invert white→black in the rgba for light themes.
+  ctx.fillStyle = adaptRectColor(block.color, theme)
   ctx.fillRect(block.x, block.y, block.width, block.height)
+
+  // Subtle dashed border so rect regions stay visible
+  ctx.strokeStyle = theme.blockBorder
+  ctx.globalAlpha = 0.25
+  ctx.lineWidth = 1
+  ctx.setLineDash([4, 4])
+  ctx.strokeRect(block.x, block.y, block.width, block.height)
+  ctx.setLineDash([])
+  ctx.globalAlpha = 1.0
+}
+
+/** If an rgba color is near-white, remap it to near-black so it shows on light backgrounds. */
+function adaptRectColor(color: string, theme: Theme): string {
+  const m = color.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\s*\)/)
+  if (!m) return color
+
+  const r = Number(m[1]), g = Number(m[2]), b = Number(m[3]), a = Number(m[4] ?? 1)
+  const isLightTheme = theme.background === '#ffffff' || theme.background === '#fff'
+
+  // Near-white fill on a light background → invert to near-black
+  if (isLightTheme && r > 200 && g > 200 && b > 200) {
+    return `rgba(0, 0, 0, ${Math.min(a * 2, 0.15)})`
+  }
+  return color
 }
 
 function drawStructuralBlock(
@@ -69,6 +105,7 @@ function drawNote(
   ctx: CanvasRenderingContext2D,
   block: BlockLayout,
   theme: Theme,
+  viewport?: BlockViewport,
 ): void {
   const foldSize = 8
 
@@ -97,20 +134,32 @@ function drawNote(
   ctx.stroke()
 
   // Text (supports <br/> line breaks)
+  // For wide notes, clamp text to the visible viewport center
   ctx.font = theme.noteFont
   ctx.fillStyle = theme.noteText
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
 
+  let textX = block.x + block.width / 2
+  if (viewport) {
+    const viewLeft = viewport.camX
+    const viewRight = viewport.camX + viewport.canvasWidth / viewport.zoom
+    const visibleLeft = Math.max(block.x, viewLeft)
+    const visibleRight = Math.min(block.x + block.width, viewRight)
+    if (visibleRight > visibleLeft) {
+      textX = (visibleLeft + visibleRight) / 2
+    }
+  }
+
   const lines = block.label.split(/<br\s*\/?>/)
   if (lines.length <= 1) {
-    ctx.fillText(block.label, block.x + block.width / 2, block.y + block.height / 2, block.width - 10)
+    ctx.fillText(block.label, textX, block.y + block.height / 2, block.width - 10)
   } else {
     const lineHeight = 16
     const totalTextHeight = lines.length * lineHeight
     const startY = block.y + (block.height - totalTextHeight) / 2 + lineHeight / 2
     for (let i = 0; i < lines.length; i++) {
-      ctx.fillText(lines[i].trim(), block.x + block.width / 2, startY + i * lineHeight, block.width - 10)
+      ctx.fillText(lines[i].trim(), textX, startY + i * lineHeight, block.width - 10)
     }
   }
 }

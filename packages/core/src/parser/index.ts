@@ -111,6 +111,9 @@ class Parser {
       case 'loop':
       case 'alt':
       case 'opt':
+      case 'critical':
+      case 'break':
+      case 'par':
       case 'rect':
         this.parseBlock(token.type, token.value, 0)
         break
@@ -208,7 +211,7 @@ class Parser {
     }
   }
 
-  private parseBlock(type: 'loop' | 'alt' | 'opt' | 'rect', label: string, depth: number): void {
+  private parseBlock(type: 'loop' | 'alt' | 'opt' | 'critical' | 'break' | 'par' | 'rect', label: string, depth: number): void {
     const startSeq = this.sequenceIndex
     const children: StructuralBlock[] = []
     const elseClauses: { label: string; startSeq: number; endSeq: number }[] = []
@@ -244,7 +247,11 @@ class Parser {
         return
       }
 
-      if (token.type === 'else' && type === 'alt') {
+      if (
+        (token.type === 'else' && type === 'alt') ||
+        (token.type === 'option' && type === 'critical') ||
+        (token.type === 'and' && type === 'par')
+      ) {
         if (currentElseStart >= 0) {
           elseClauses.push({
             label: currentElseLabel,
@@ -259,7 +266,7 @@ class Parser {
       }
 
       // Nested blocks
-      if (token.type === 'loop' || token.type === 'alt' || token.type === 'opt' || token.type === 'rect') {
+      if (token.type === 'loop' || token.type === 'alt' || token.type === 'opt' || token.type === 'critical' || token.type === 'break' || token.type === 'par' || token.type === 'rect') {
         if (depth < 3) {
           this.parseBlock(token.type, token.value, depth + 1)
           this.pos++

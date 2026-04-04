@@ -12,6 +12,7 @@ import { drawScrollbars } from '../viewport/scrollbars'
 
 export interface RenderOptions {
   showOffscreenLabels?: boolean
+  showSourceLabels?: boolean
 }
 
 export function render(
@@ -57,13 +58,18 @@ export function render(
   }
 
   // Structural blocks
-  drawBlocks(ctx, layoutModel.blocks, theme)
+  drawBlocks(ctx, layoutModel.blocks, theme, { camX, canvasWidth, zoom })
 
-  // Arrows and labels (skip spacer rows with no label text)
+  // Arrows and labels (skip spacer rows — they have both arrow endpoints at 0)
+  // Use CSS viewport width (not device pixels) for correct world-space calculations
+  const dpr = window.devicePixelRatio || 1
+  const cssViewportWidth = canvasWidth / dpr
   for (const row of layoutModel.rows) {
-    if (!row.label.text) continue
+    if (row.arrow.fromX === 0 && row.arrow.toX === 0) continue
     drawArrow(ctx, row.arrow.fromX, row.arrow.toX, row.y + row.height / 2, row.arrow.type, theme)
-    drawLabel(ctx, row, camX, canvasWidth, zoom, ast.autonumber, theme, renderOptions.showOffscreenLabels ?? true)
+    if (row.label.text) {
+      drawLabel(ctx, row, camX, cssViewportWidth, zoom, ast.autonumber, theme, renderOptions.showOffscreenLabels ?? true, renderOptions.showSourceLabels ?? false)
+    }
   }
 
   ctx.restore()

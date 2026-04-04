@@ -23,7 +23,7 @@ export interface ParticipantBox {
 }
 
 export interface StructuralBlock {
-  type: 'loop' | 'alt' | 'opt' | 'note' | 'rect'
+  type: 'loop' | 'alt' | 'opt' | 'critical' | 'break' | 'par' | 'note' | 'rect'
   label: string
   startSeq: number
   endSeq: number

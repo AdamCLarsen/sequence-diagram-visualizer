@@ -12,6 +12,11 @@ export type TokenType =
   | 'else'
   | 'opt'
   | 'note'
+  | 'critical'
+  | 'break'
+  | 'par'
+  | 'option'
+  | 'and'
   | 'box'
   | 'rect'
   | 'end'
@@ -104,6 +109,31 @@ export function tokenize(text: string): Token[] {
 
     if (lower.startsWith('opt ')) {
       tokens.push({ type: 'opt', raw, value: trimmed.slice('opt '.length).trim(), line: lineNum })
+      continue
+    }
+
+    if (lower.startsWith('critical ') || lower === 'critical') {
+      tokens.push({ type: 'critical', raw, value: trimmed.slice('critical'.length).trim(), line: lineNum })
+      continue
+    }
+
+    if (lower.startsWith('break ') || lower === 'break') {
+      tokens.push({ type: 'break', raw, value: trimmed.slice('break'.length).trim(), line: lineNum })
+      continue
+    }
+
+    if (lower.startsWith('par ') || lower === 'par') {
+      tokens.push({ type: 'par', raw, value: trimmed.slice('par'.length).trim(), line: lineNum })
+      continue
+    }
+
+    if (lower.startsWith('option ') || lower === 'option') {
+      tokens.push({ type: 'option', raw, value: trimmed.slice('option'.length).trim(), line: lineNum })
+      continue
+    }
+
+    if (lower.startsWith('and ') || lower === 'and') {
+      tokens.push({ type: 'and', raw, value: trimmed.slice('and'.length).trim(), line: lineNum })
       continue
     }
 

@@ -30,6 +30,8 @@ export interface Theme {
   blockLabelFont: string
   noteFont: string
   autonumberFont: string
+  sourceLabelText: string
+  sourceLabelFont: string
 }
 
 export const LIGHT_THEME: Theme = {
@@ -64,6 +66,8 @@ export const LIGHT_THEME: Theme = {
   blockLabelFont: 'bold 11px sans-serif',
   noteFont: '12px sans-serif',
   autonumberFont: 'bold 10px sans-serif',
+  sourceLabelText: '#7b1fa2',
+  sourceLabelFont: 'italic 11px sans-serif',
 }
 
 export const DARK_THEME: Theme = {
@@ -98,6 +102,8 @@ export const DARK_THEME: Theme = {
   blockLabelFont: 'bold 11px sans-serif',
   noteFont: '12px sans-serif',
   autonumberFont: 'bold 10px sans-serif',
+  sourceLabelText: '#ce93d8',
+  sourceLabelFont: 'italic 11px sans-serif',
 }
 
 export function getTheme(name: 'light' | 'dark'): Theme {
