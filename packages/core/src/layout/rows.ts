@@ -39,7 +39,10 @@ export function layoutRows(
   let prevSeq = -1
   for (const seq of sorted) {
     const msg = msgMap.get(seq)
-    const height = config.rowHeight
+    // Compact rows for messages with no label text; note spacers keep full height
+    const isNoteSpacerRow = !msg && noteSeqs.has(seq)
+    const hasLabel = msg ? msg.label.trim().length > 0 : false
+    const height = (hasLabel || isNoteSpacerRow) ? config.rowHeight : Math.round(config.rowHeight * 0.55)
 
     // Add top padding when this row starts a block (space for the block tag)
     if (blockStartSeqs.has(seq)) {
