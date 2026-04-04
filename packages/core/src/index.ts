@@ -17,6 +17,7 @@ export type { SequenceDiagramAST, LayoutModel, TextMeasurer, Theme, Camera }
 export interface ViewerOptions {
   theme?: 'light' | 'dark'
   onError?: (err: Error) => void
+  onCameraChange?: (camera: Camera) => void
 }
 
 export interface Viewer {
@@ -72,7 +73,7 @@ export function createViewer(
 
   const detachInput = attachInputHandlers(canvas, {
     getCamera: () => currentCamera,
-    setCamera: (cam) => { currentCamera = cam },
+    setCamera: (cam) => { currentCamera = cam; options.onCameraChange?.(cam) },
     getDiagramSize: () => currentLayout
       ? { width: currentLayout.width, height: currentLayout.height }
       : { width: 0, height: 0 },

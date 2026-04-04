@@ -25,18 +25,18 @@ export function attachInputHandlers(
     const viewport = options.getCanvasSize()
     let newCamera: Camera
 
-    if (e.ctrlKey || e.metaKey) {
-      // Zoom around cursor
+    if (e.shiftKey) {
+      // Shift+scroll: horizontal pan
+      newCamera = panCamera(camera, e.deltaY / camera.zoom, 0)
+    } else if (e.ctrlKey || e.metaKey) {
+      // Ctrl/Cmd+scroll: vertical pan
+      newCamera = panCamera(camera, 0, e.deltaY / camera.zoom)
+    } else {
+      // Plain scroll: zoom around cursor
       const rect = canvas.getBoundingClientRect()
       const cursorX = e.clientX - rect.left
       const cursorY = e.clientY - rect.top
       newCamera = zoomCamera(camera, e.deltaY, cursorX, cursorY)
-    } else if (e.shiftKey) {
-      // Horizontal pan
-      newCamera = panCamera(camera, e.deltaY / camera.zoom, 0)
-    } else {
-      // Vertical pan
-      newCamera = panCamera(camera, 0, e.deltaY / camera.zoom)
     }
 
     newCamera = clampCamera(newCamera, diagram.width, diagram.height, viewport.width, viewport.height)

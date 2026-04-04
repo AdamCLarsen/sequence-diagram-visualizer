@@ -11,15 +11,18 @@ export function drawHeaders(
   participants: Participant[],
   headerHeight: number,
   theme: Theme,
+  camX?: number,
+  canvasWidth?: number,
+  zoom?: number,
 ): void {
   const participantMap = new Map(participants.map((p) => [p.id, p]))
 
-  // Opaque header background
-  const totalWidth = columns.length > 0
-    ? columns[columns.length - 1].x + columns[columns.length - 1].width / 2 + 50
-    : 0
+  // Opaque header background — must cover the full visible viewport
+  const z = zoom ?? 1
+  const cx = camX ?? 0
+  const viewWidth = (canvasWidth ?? 4000) / z
   ctx.fillStyle = theme.headerBackground
-  ctx.fillRect(-50, 0, totalWidth + 100, headerHeight)
+  ctx.fillRect(cx - 10, 0, viewWidth + 20, headerHeight)
 
   // Participant boxes
   for (const col of columns) {
@@ -54,8 +57,8 @@ export function drawHeaders(
   ctx.beginPath()
   ctx.strokeStyle = theme.headerBorder
   ctx.lineWidth = 1
-  ctx.moveTo(-50, headerHeight)
-  ctx.lineTo(totalWidth + 100, headerHeight)
+  ctx.moveTo(cx - 10, headerHeight)
+  ctx.lineTo(cx + viewWidth + 20, headerHeight)
   ctx.stroke()
 }
 

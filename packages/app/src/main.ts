@@ -13,12 +13,15 @@ function init() {
 
   const pasteContainer = document.getElementById('paste-container') as HTMLElement
 
+  let shelf: ReturnType<typeof createShelf>
+
   viewer = createViewer(canvas, {
     theme: 'light',
     onError: (err) => console.error('[seq-viz]', err),
+    onCameraChange: () => shelf?.updateZoom(),
   })
 
-  const shelf = createShelf({
+  shelf = createShelf({
     onOpen: handleOpen,
     onReload: handleReload,
     onPasteToggle: (active) => handlePasteToggle(active, pasteContainer),
@@ -26,6 +29,12 @@ function init() {
     onZoomOut: () => { viewer.zoomTo(viewer.camera.zoom / 1.2); shelf.updateZoom() },
     onZoomReset: () => { viewer.resetView(); shelf.updateZoom() },
     getZoom: () => viewer.camera.zoom,
+    onWidthChange: (widthPx) => {
+      canvas.style.left = widthPx + 'px'
+      canvas.style.width = `calc(100vw - ${widthPx}px)`
+      pasteContainer.style.left = widthPx + 'px'
+      viewer.resize()
+    },
   })
 
   document.body.appendChild(shelf.element)

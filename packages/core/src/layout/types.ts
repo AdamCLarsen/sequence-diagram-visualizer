@@ -18,7 +18,7 @@ export interface LayoutConfig {
 
 export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   minColumnWidth: 120,
-  rowHeight: 40,
+  rowHeight: 50,
   headerHeight: 60,
   columnPadding: 40,
   blockIndent: 8,

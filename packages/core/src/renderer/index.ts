@@ -30,8 +30,11 @@ export function render(
   ctx.scale(zoom, zoom)
   ctx.translate(-camX, -camY)
 
-  // Lifelines
-  drawLifelines(ctx, layoutModel.columns, layoutModel.headerHeight, layoutModel.height, theme)
+  // Lifelines — extend from visible top to visible bottom
+  const viewportTop = camY
+  const viewportBottom = camY + canvasHeight / zoom
+  const lifelineStart = Math.min(layoutModel.headerHeight, viewportTop)
+  drawLifelines(ctx, layoutModel.columns, lifelineStart, layoutModel.height, theme, viewportBottom)
 
   // Activation bars
   for (const act of layoutModel.activations) {
@@ -46,8 +49,9 @@ export function render(
   // Structural blocks
   drawBlocks(ctx, layoutModel.blocks, theme)
 
-  // Arrows and labels
+  // Arrows and labels (skip spacer rows with no label text)
   for (const row of layoutModel.rows) {
+    if (!row.label.text) continue
     drawArrow(ctx, row.arrow.fromX, row.arrow.toX, row.y + row.height / 2, row.arrow.type, theme)
     drawLabel(ctx, row, camX, canvasWidth, zoom, ast.autonumber, theme)
   }
@@ -59,7 +63,7 @@ export function render(
   ctx.scale(zoom, zoom)
   ctx.translate(-camX, 0)
 
-  drawHeaders(ctx, layoutModel.columns, ast.participants, layoutModel.headerHeight, theme)
+  drawHeaders(ctx, layoutModel.columns, ast.participants, layoutModel.headerHeight, theme, camX, canvasWidth, zoom)
 
   ctx.restore()
 

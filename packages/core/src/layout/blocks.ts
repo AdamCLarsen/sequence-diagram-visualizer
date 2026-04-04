@@ -26,8 +26,9 @@ export function layoutBlocks(
     if (!startRow && !endRow) continue
 
     const indent = block.depth * config.blockIndent
-    const y = startRow ? startRow.y - 10 : 0
-    const endY = endRow ? endRow.y + endRow.height + 5 : y + config.rowHeight
+    const blockPad = 18
+    const y = startRow ? startRow.y - blockPad : 0
+    const endY = endRow ? endRow.y + endRow.height + blockPad : y + config.rowHeight
 
     result.push({
       type: block.type,
@@ -48,7 +49,7 @@ export function layoutBlocks(
             type: 'else',
             label: clause.label,
             x: indent + 10,
-            y: clauseRow.y - 10,
+            y: clauseRow.y - blockPad,
             width: totalWidth - indent * 2 - 20,
             height: 2,
             depth: block.depth,
@@ -92,12 +93,13 @@ function layoutNote(
     if (block.targetParticipants.length > 1) {
       const last = colMap.get(block.targetParticipants[block.targetParticipants.length - 1])
       if (last) {
-        x = firstTarget.x - noteW / 2
-        const span = last.x - firstTarget.x + noteW
+        const pad = 20
+        const centerX = (firstTarget.x + last.x) / 2
+        const span = Math.max(last.x - firstTarget.x + pad * 2, noteW)
         return {
           type: 'note',
           label: block.label,
-          x: firstTarget.x - span / 2 + (last.x - firstTarget.x) / 2,
+          x: Math.max(5, centerX - span / 2),
           y: row ? row.y - 5 : 0,
           width: span,
           height: 30,
@@ -105,7 +107,7 @@ function layoutNote(
         }
       }
     }
-    x = firstTarget.x - noteW / 2
+    x = Math.max(5, firstTarget.x - noteW / 2)
   }
 
   return {

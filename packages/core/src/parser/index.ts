@@ -316,5 +316,6 @@ class Parser {
       targetParticipants,
     }
     this.blocks.push(block)
+    this.sequenceIndex++
   }
 }

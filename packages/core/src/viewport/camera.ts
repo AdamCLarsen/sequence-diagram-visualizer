@@ -56,12 +56,20 @@ export function clampCamera(
   viewportWidth: number,
   viewportHeight: number,
 ): Camera {
-  const maxX = Math.max(0, diagramWidth - viewportWidth / camera.zoom)
-  const maxY = Math.max(0, diagramHeight - viewportHeight / camera.zoom)
+  const vw = viewportWidth / camera.zoom
+  const vh = viewportHeight / camera.zoom
+
+  // When zoomed in (diagram > viewport): pan within [0, diagram - viewport]
+  // When zoomed out (diagram < viewport): allow [diagram - viewport, 0] so
+  // zoom-to-cursor can offset the diagram naturally within the viewport
+  const minX = Math.min(0, diagramWidth - vw)
+  const maxX = Math.max(0, diagramWidth - vw)
+  const minY = Math.min(0, diagramHeight - vh)
+  const maxY = Math.max(0, diagramHeight - vh)
 
   return {
     ...camera,
-    x: Math.max(0, Math.min(maxX, camera.x)),
-    y: Math.max(0, Math.min(maxY, camera.y)),
+    x: Math.max(minX, Math.min(maxX, camera.x)),
+    y: Math.max(minY, Math.min(maxY, camera.y)),
   }
 }

@@ -14,7 +14,7 @@ export function layout(
   config: LayoutConfig = DEFAULT_LAYOUT_CONFIG,
 ): LayoutModel {
   const columns = layoutColumns(ast.participants, measurer, config)
-  const rows = layoutRows(ast.messages, columns, config)
+  const rows = layoutRows(ast.messages, columns, config, ast.blocks)
   const blocks = layoutBlocks(ast.blocks, rows, columns, config)
   const activations = layoutActivations(ast, columns, rows, config)
 
@@ -65,8 +65,8 @@ function layoutActivations(
     result.push({
       participantId: act.participantId,
       x: col.x - config.activationBarWidth / 2 + level * 4,
-      startY: startRow.y,
-      endY: endRow ? endRow.y + endRow.height : startRow.y + config.rowHeight,
+      startY: startRow.y + startRow.height / 2 - 8,
+      endY: (endRow ? endRow.y + endRow.height / 2 : startRow.y + config.rowHeight) + 8,
       nestLevel: level,
     })
   }
