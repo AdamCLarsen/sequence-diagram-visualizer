@@ -1,0 +1,33 @@
+sequenceDiagram
+    title Order Processing
+    autonumber
+    participant Client
+    participant API as API Server
+    actor DB as Database
+
+    Client->>API: POST /orders
+    activate API
+    API->>DB: INSERT order
+    activate DB
+    DB-->>API: order_id
+    deactivate DB
+
+    alt Success
+        API-->>Client: 201 Created
+    else Validation Error
+        API-->>Client: 400 Bad Request
+    end
+
+    loop Retry 3 times
+        API->>DB: Check status
+        DB-->>API: pending
+    end
+
+    opt Notification
+        API-)Client: WebSocket update
+    end
+
+    note over Client,API: Authentication required
+    note right of DB: Async replication
+
+    deactivate API
