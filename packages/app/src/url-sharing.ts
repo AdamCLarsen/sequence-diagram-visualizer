@@ -1,5 +1,8 @@
 const PARAM = 'd'
 
+/** Maximum compressed payload size (bytes) accepted from the URL */
+const MAX_PARAM_LENGTH = 50_000
+
 /** Gzip-compress text and return a base64url-encoded string */
 export async function compressDiagram(text: string): Promise<string> {
   const data = new TextEncoder().encode(text)
@@ -21,6 +24,10 @@ export async function compressDiagram(text: string): Promise<string> {
 
 /** Decode a base64url string and gzip-decompress it back to text */
 export async function decompressDiagram(encoded: string): Promise<string> {
+  if (encoded.length > MAX_PARAM_LENGTH) {
+    throw new Error('Shared diagram exceeds maximum allowed size')
+  }
+
   let b64 = encoded.replace(/-/g, '+').replace(/_/g, '/')
   while (b64.length % 4 !== 0) b64 += '='
 
