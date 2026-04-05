@@ -1,5 +1,6 @@
 import { parse, extractFromMarkdown } from './parser'
 import type { SequenceDiagramAST } from './parser/types'
+import { serialize } from './serializer'
 import { layout } from './layout'
 import type { LayoutModel, TextMeasurer } from './layout/types'
 import { DEFAULT_LAYOUT_CONFIG } from './layout/types'
@@ -8,7 +9,7 @@ import { getTheme, type Theme } from './renderer/theme'
 import { createCamera, resetCamera, clampZoom, type Camera } from './viewport/camera'
 import { attachInputHandlers } from './viewport/input'
 
-export { parse, extractFromMarkdown }
+export { parse, extractFromMarkdown, serialize }
 export { layout, DEFAULT_LAYOUT_CONFIG }
 export { render }
 export { getTheme }
@@ -31,7 +32,6 @@ export interface Viewer {
   setTheme(name: 'light' | 'dark'): void
   toggleParticipant(id: string): void
   clearSelection(): void
-  showOffscreenLabels: boolean
   showSourceLabels: boolean
   showDiagramColors: boolean
   readonly selectedParticipantIds: string[]
@@ -53,8 +53,7 @@ export function createViewer(
   let currentAST: SequenceDiagramAST | null = null
   let currentLayout: LayoutModel | null = null
   let rafId: number | null = null
-  let offscreenLabels = true
-  let sourceLabels = false
+  let sourceLabels = true
   let diagramColors = true
   const selectedParticipants = new Set<string>()
 
@@ -76,7 +75,6 @@ export function createViewer(
   function doRender(): void {
     if (!currentAST || !currentLayout) return
     render(ctx, currentLayout, currentAST, currentCamera, canvas.width, canvas.height, theme, {
-      showOffscreenLabels: offscreenLabels,
       showSourceLabels: sourceLabels,
       showDiagramColors: diagramColors,
       selectedParticipants: selectedParticipants.size > 0 ? selectedParticipants : undefined,
@@ -189,9 +187,6 @@ export function createViewer(
       resizeObserver.disconnect()
       if (rafId !== null) cancelAnimationFrame(rafId)
     },
-
-    get showOffscreenLabels() { return offscreenLabels },
-    set showOffscreenLabels(v: boolean) { offscreenLabels = v; scheduleRender() },
 
     get showSourceLabels() { return sourceLabels },
     set showSourceLabels(v: boolean) { sourceLabels = v; scheduleRender() },

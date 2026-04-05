@@ -2,22 +2,42 @@ import type { RowLayout } from '../layout/types'
 import type { Theme } from './theme'
 
 const LABEL_PAD = 20
-const SOURCE_ICON_W = 12
-const SOURCE_ICON_H = 8
-const SOURCE_ICON_PAD = 4
+const SOURCE_ICON_W = 10
+const SOURCE_ICON_H = 10
+const SOURCE_ICON_PAD = 3
 
-/** Draw a small participant-box icon (rounded rect) inline before/after the source label */
+/** Draw a small corner-down-left arrow icon inline before/after the source label */
 function drawSourceIcon(
   ctx: CanvasRenderingContext2D,
   x: number,
   centerY: number,
   color: string,
 ): void {
+  // Miniature version of the cornerDownLeft Lucide icon (24x24 scaled to ~10x10)
+  const s = 10 / 24  // scale factor
+  ctx.save()
+  ctx.translate(x, centerY - SOURCE_ICON_H / 2)
   ctx.strokeStyle = color
-  ctx.lineWidth = 1.2
+  ctx.lineWidth = 1.4
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+
+  // Curved path: vertical line down, curve, horizontal line left
   ctx.beginPath()
-  ctx.roundRect(x, centerY - SOURCE_ICON_H / 2, SOURCE_ICON_W, SOURCE_ICON_H, 2)
+  ctx.moveTo(20 * s, 4 * s)
+  ctx.lineTo(20 * s, 11 * s)
+  ctx.quadraticCurveTo(20 * s, 15 * s, 16 * s, 15 * s)
+  ctx.lineTo(4 * s, 15 * s)
   ctx.stroke()
+
+  // Arrowhead pointing left
+  ctx.beginPath()
+  ctx.moveTo(9 * s, 10 * s)
+  ctx.lineTo(4 * s, 15 * s)
+  ctx.lineTo(9 * s, 20 * s)
+  ctx.stroke()
+
+  ctx.restore()
 }
 
 /** Draw a source participant annotation with icon */
@@ -81,7 +101,6 @@ export function drawLabel(
   zoom: number,
   autonumber: boolean,
   theme: Theme,
-  showOffscreenLabels = true,
   showSourceLabels = false,
 ): void {
   const viewLeft = cameraX + LABEL_PAD
@@ -122,48 +141,22 @@ export function drawLabel(
 
   const midX = row.label.midX
 
-  let drawX: number
-  let text: string
-  let isClamped = false
+  const text = row.label.text
 
   // Check if either endpoint lifeline is visible on screen
   const hasVisibleLifeline =
     (row.arrow.fromX >= viewLeftEdge && row.arrow.fromX <= viewRightEdge) ||
     (row.arrow.toX >= viewLeftEdge && row.arrow.toX <= viewRightEdge)
 
-  if (midX < viewLeft) {
-    if (!showOffscreenLabels && !hasVisibleLifeline) return
-    drawX = viewLeft
-    text = '\u2190 ' + row.label.text
-    isClamped = true
-  } else if (midX > viewRight) {
-    if (!showOffscreenLabels && !hasVisibleLifeline) return
-    drawX = viewRight
-    text = row.label.text + ' \u2192'
-    isClamped = true
-  } else {
-    drawX = midX
-    text = row.label.text
+  if (midX < viewLeft || midX > viewRight) {
+    if (!hasVisibleLifeline) return
   }
 
   ctx.font = theme.labelFont
-  ctx.fillStyle = isClamped ? theme.labelClampedText : theme.labelText
+  ctx.fillStyle = theme.labelText
 
   const textWidth = ctx.measureText(text).width
-  const align = isClamped
-    ? midX < viewLeft
-      ? 'left'
-      : 'right'
-    : 'center'
-
-  let x: number
-  if (align === 'left') {
-    x = drawX
-  } else if (align === 'right') {
-    x = drawX - textWidth
-  } else {
-    x = drawX - textWidth / 2
-  }
+  let x = midX - textWidth / 2
 
   // Prevent text from being clipped by the visible edges
   if (x + textWidth > rightEdge) {
@@ -237,7 +230,7 @@ export function drawLabel(
 
   // Draw label text
   ctx.font = theme.labelFont
-  ctx.fillStyle = isClamped ? theme.labelClampedText : theme.labelText
+  ctx.fillStyle = theme.labelText
   ctx.textAlign = 'left'
   ctx.textBaseline = 'alphabetic'
   ctx.fillText(text, x, row.label.y)

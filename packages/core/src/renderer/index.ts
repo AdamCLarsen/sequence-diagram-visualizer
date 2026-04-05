@@ -11,7 +11,6 @@ import { drawParticipantBoxes } from './participant-boxes'
 import { drawScrollbars } from '../viewport/scrollbars'
 
 export interface RenderOptions {
-  showOffscreenLabels?: boolean
   showSourceLabels?: boolean
   showDiagramColors?: boolean
   selectedParticipants?: Set<string>
@@ -79,7 +78,7 @@ export function render(
     drawArrow(ctx, row.arrow.fromX, row.arrow.toX, row.y + row.height / 2, row.arrow.type, theme)
     const showSource = renderOptions.showSourceLabels ?? false
     if (row.label.text || showSource) {
-      drawLabel(ctx, row, camX, cssViewportWidth, zoom, ast.autonumber, theme, renderOptions.showOffscreenLabels ?? true, showSource)
+      drawLabel(ctx, row, camX, cssViewportWidth, zoom, ast.autonumber, theme, showSource)
     }
     if (dimRow) ctx.globalAlpha = 1.0
   }
