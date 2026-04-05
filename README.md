@@ -1,51 +1,47 @@
 # Sequence Diagram Visualizer
 
-A web-based, read-only interactive viewer for Mermaid `sequenceDiagram` syntax. Renders diagrams as Canvas 2D draw calls with sticky participant headers, persistent message labels with viewport clamping, zoom, pan, and file reload.
+A fast, interactive viewer for [Mermaid](https://mermaid.js.org/) `sequenceDiagram` syntax. Renders directly to Canvas 2D with smooth zoom, pan, and sticky headers — no Mermaid runtime required.
 
-Mermaid is the syntax compatibility target, not a dependency.
+**[Live Demo](https://adamclarsen.github.io/sequence-diagram-visualizer/)**
 
-## Quick Start
+## Features
+
+- **Canvas 2D rendering** — no DOM-based SVG, no Mermaid dependency; just fast draw calls
+- **Pan and zoom** — click-drag to pan, scroll to zoom (Ctrl/Cmd + wheel), pinch-to-zoom on trackpad
+- **Sticky participant headers** — headers stay visible as you scroll through long diagrams
+- **URL sharing** — diagram state is compressed into the URL for easy sharing
+- **Dark mode** — toggle between light and dark themes
+- **File loading** — open `.mmd`, `.mermaid`, `.md`, or `.txt` files via file picker or drag-and-drop
+- **Markdown support** — extracts the first `mermaid` or `sequenceDiagram` fenced code block from `.md` files
+- **Live paste** — paste diagram text directly with real-time re-rendering
+- **Participant selection** — click participants to highlight their messages
+- **Diagram colors** — respects `box` color annotations from the diagram source
+- **Hot reload** — re-reads the opened file without re-picking (Chrome/Edge File System Access API)
+
+## Supported Syntax
+
+Parses standard Mermaid `sequenceDiagram` syntax:
+
+- `participant` / `actor` declarations with `as` aliases
+- All 8 arrow types: `->` `-->` `->>` `-->>` `-x` `--x` `-)` `--)`
+- Message labels and `autonumber`
+- `loop`, `alt`/`else`, `opt`, `critical`, `break`, `par` blocks (nested)
+- `note left of` / `right of` / `over` (multi-line)
+- `activate` / `deactivate` (including `+`/`-` shorthand on arrows)
+- `box` grouping with optional colors
+- `rect` highlight regions
+- `title`
+
+## Getting Started
 
 ```bash
+git clone https://github.com/AdamCLarsen/sequence-diagram-visualizer.git
+cd sequence-diagram-visualizer
 npm install
 npm run dev
 ```
 
-Open `http://localhost:5173` in your browser. A demo diagram loads automatically.
-
-## Usage
-
-- **Open a file** — click the folder icon in the left shelf to load `.mmd`, `.mermaid`, `.md`, or `.txt` files
-- **Drag and drop** — drop a diagram file onto the canvas
-- **Paste** — click the keyboard icon to toggle a paste textarea (persisted to localStorage)
-- **Reload** — when a file is opened via the file picker (Chrome/Edge), the reload button re-reads the file without re-picking
-- **Zoom** — Ctrl/Cmd + mouse wheel zooms around cursor, or use shelf +/- buttons
-- **Pan** — click and drag, or scroll vertically / Shift+scroll horizontally
-
-Markdown files (`.md`) are supported — the parser extracts the first fenced code block with a `mermaid` or `sequenceDiagram` info string.
-
-## Project Structure
-
-Two-package monorepo:
-
-```
-packages/
-  core/       @seq-viz/core — portable library, zero dependencies
-    src/
-      parser/       Mermaid sequenceDiagram text → AST
-      layout/       AST → LayoutModel (positions, dimensions)
-      renderer/     LayoutModel → Canvas 2D draw calls (3-pass)
-      viewport/     Virtual camera, zoom, pan, custom scrollbars
-      index.ts      Public API: createViewer(canvas, options)
-
-  app/        @seq-viz/app — thin web shell
-    src/
-      main.ts         Wires core to shell
-      shelf.ts        Collapsible left shelf UI
-      file-loader.ts  File System Access API + fallback
-      paste-input.ts  Textarea with debounced re-render
-    index.html        Entry point (Tailwind CDN)
-```
+Open `http://localhost:5173`. A demo diagram loads automatically.
 
 ## Scripts
 
@@ -53,33 +49,52 @@ packages/
 npm run dev        # Start Vite dev server
 npm run build      # Production build (core then app)
 npm test           # Run unit tests (Vitest)
-npm run test:watch # Run tests in watch mode
+npm run test:watch # Tests in watch mode
 ```
 
-## Supported Syntax
+## Architecture
 
-All standard Mermaid `sequenceDiagram` features for v1:
+Two-package monorepo with zero runtime dependencies:
 
-- `participant` / `actor` declarations with `as` aliases
-- Implicit participants (auto-declared from first message)
-- All 8 arrow types: `->` `-->` `->>` `-->>` `-x` `--x` `-)` `--)`
-- Message labels
-- `loop`, `alt`/`else`, `opt`, `note` blocks (nested up to 4 levels)
-- `activate` / `deactivate` (including `+`/`-` shorthand)
-- `autonumber`
-- `title`
+```
+packages/
+  core/       @seq-viz/core — portable rendering library
+    parser/     Mermaid text → AST
+    layout/     AST → positioned layout model
+    renderer/   Layout → Canvas 2D draw calls
+    viewport/   Virtual camera, input handling, scrollbars
+    serializer  AST → Mermaid text (for URL sharing)
+
+  app/        @seq-viz/app — thin web shell
+    main.ts       Wires core to the browser
+    shelf.ts      Collapsible toolbar UI
+    file-loader   File System Access API + drag-and-drop
+    paste-input   Live textarea input
+    url-sharing   Compress/decompress diagrams for URL params
+```
+
+The core library has no DOM dependency and can be embedded in any Canvas-based application.
 
 ## Tech Stack
 
 | Layer | Choice |
 |---|---|
 | Language | TypeScript |
-| Framework | None (vanilla TS) |
+| Framework | None (vanilla) |
+| Rendering | Canvas 2D |
 | Build | Vite |
 | Testing | Vitest |
-| Rendering | Canvas 2D |
-| Shell styling | Tailwind CDN |
+| Styling | Tailwind CSS |
 
-## Browser Support
+## Contributing
 
-Desktop only for v1. Chrome and Edge are primary targets; Firefox is best-effort.
+Contributions are welcome! Please open an issue first to discuss what you'd like to change.
+
+```bash
+# Run tests before submitting
+npm test
+```
+
+## License
+
+[MIT](LICENSE) -- Adam Larsen
