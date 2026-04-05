@@ -6,6 +6,8 @@ import { createShelf } from './shelf'
 const STATE_KEY = 'seq-viz-state'
 const LABELS_KEY = 'seq-viz-offscreen-labels'
 const SOURCE_LABELS_KEY = 'seq-viz-source-labels'
+const DARK_MODE_KEY = 'seq-viz-dark-mode'
+const DIAGRAM_COLORS_KEY = 'seq-viz-diagram-colors'
 const CAMERA_SAVE_MS = 300
 
 interface SavedState {
@@ -39,8 +41,13 @@ function init() {
 
   let shelf: ReturnType<typeof createShelf>
 
+  // Resolve initial theme: saved preference > system preference
+  const savedDark = localStorage.getItem(DARK_MODE_KEY)
+  const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+  const initialDark = savedDark !== null ? JSON.parse(savedDark) : systemDark
+
   viewer = createViewer(canvas, {
-    theme: 'light',
+    theme: initialDark ? 'dark' : 'light',
     onError: (err) => console.error('[seq-viz]', err),
     onCameraChange: (cam: Camera) => {
       shelf?.updateZoom()
@@ -48,6 +55,9 @@ function init() {
       cameraSaveTimer = setTimeout(() => {
         saveState({ camera: { x: cam.x, y: cam.y, zoom: cam.zoom } })
       }, CAMERA_SAVE_MS)
+    },
+    onSelectionChange: () => {
+      shelf?.refresh()
     },
   })
 
@@ -69,6 +79,19 @@ function init() {
       localStorage.setItem(SOURCE_LABELS_KEY, JSON.stringify(enabled))
     },
     getSourceLabels: () => viewer.showSourceLabels,
+    onDarkModeToggle: (dark) => {
+      viewer.setTheme(dark ? 'dark' : 'light')
+      document.body.className = dark ? 'h-full bg-black' : 'h-full bg-white'
+      localStorage.setItem(DARK_MODE_KEY, JSON.stringify(dark))
+    },
+    getDarkMode: () => viewer.themeName === 'dark',
+    onDiagramColorsToggle: (enabled) => {
+      viewer.showDiagramColors = enabled
+      localStorage.setItem(DIAGRAM_COLORS_KEY, JSON.stringify(enabled))
+    },
+    getDiagramColors: () => viewer.showDiagramColors,
+    onClearSelection: () => { viewer.clearSelection() },
+    getSelectionCount: () => viewer.selectedParticipantIds.length,
     onWidthChange: (widthPx) => {
       canvas.style.left = widthPx + 'px'
       canvas.style.width = `calc(100vw - ${widthPx}px)`
@@ -95,7 +118,7 @@ function init() {
     }
   })
 
-  // Restore label settings
+  // Restore settings
   const labelsStored = localStorage.getItem(LABELS_KEY)
   if (labelsStored !== null) {
     viewer.showOffscreenLabels = JSON.parse(labelsStored)
@@ -104,6 +127,22 @@ function init() {
   if (srcLabelsStored !== null) {
     viewer.showSourceLabels = JSON.parse(srcLabelsStored)
   }
+  const diagramColorsStored = localStorage.getItem(DIAGRAM_COLORS_KEY)
+  if (diagramColorsStored !== null) {
+    viewer.showDiagramColors = JSON.parse(diagramColorsStored)
+  }
+
+  // Set initial body background for theme
+  document.body.className = initialDark ? 'h-full bg-black' : 'h-full bg-white'
+
+  // Follow system preference changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    if (localStorage.getItem(DARK_MODE_KEY) !== null) return // manual override
+    viewer.setTheme(e.matches ? 'dark' : 'light')
+    document.body.className = e.matches ? 'h-full bg-black' : 'h-full bg-white'
+    shelf.refresh()
+  })
+
   shelf.refresh()
 
   // Expose viewer for dev tooling (Playwright, console)

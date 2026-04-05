@@ -14,7 +14,7 @@ export type { SequenceDiagramAST, Participant, ParticipantBox, Message, Structur
 /** Extract mermaid code block from markdown content */
 export function extractFromMarkdown(md: string): string | null {
   const pattern = /```(?:mermaid|sequenceDiagram)\s*\n([\s\S]*?)```/
-  const match = md.exec ? pattern.exec(md) : md.match(pattern)
+  const match = pattern.exec(md)
   if (!match) return null
   return match[1].trim()
 }

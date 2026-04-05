@@ -41,6 +41,8 @@ export interface RowLayout {
   height: number
   arrow: { fromX: number; toX: number; type: ArrowType }
   label: { text: string; midX: number; y: number }
+  fromId: string
+  toId: string
   fromLabel: string
   toLabel: string
 }

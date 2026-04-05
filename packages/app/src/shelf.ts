@@ -10,6 +10,12 @@ export interface ShelfOptions {
   getOffscreenLabels: () => boolean
   onSourceLabelsToggle: (enabled: boolean) => void
   getSourceLabels: () => boolean
+  onDarkModeToggle: (dark: boolean) => void
+  getDarkMode: () => boolean
+  onDiagramColorsToggle: (enabled: boolean) => void
+  getDiagramColors: () => boolean
+  onClearSelection: () => void
+  getSelectionCount: () => number
   onWidthChange?: (widthPx: number) => void
 }
 
@@ -34,6 +40,10 @@ const ICONS = {
   scan: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/></svg>',
   tag: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>',
   cornerDownLeft: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>',
+  moon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>',
+  sun: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>',
+  palette: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>',
+  xCircle: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>',
 }
 
 export function createShelf(options: ShelfOptions): Shelf {
@@ -116,6 +126,48 @@ export function createShelf(options: ShelfOptions): Shelf {
     )
     if (!srcOn) srcBtn.style.opacity = '0.4'
     el.appendChild(srcBtn)
+
+    // Divider
+    const divider2 = document.createElement('div')
+    divider2.className = 'border-t border-gray-600 my-2 mx-1'
+    el.appendChild(divider2)
+
+    // Dark mode toggle
+    const isDark = options.getDarkMode()
+    el.appendChild(btn(
+      isDark ? ICONS.sun : ICONS.moon,
+      () => { options.onDarkModeToggle(!options.getDarkMode()); render() },
+      'Toggle dark mode',
+      !collapsed ? (isDark ? 'Light Mode' : 'Dark Mode') : '',
+    ))
+
+    // Diagram colors toggle
+    const colorsOn = options.getDiagramColors()
+    const colorsBtn = btn(
+      ICONS.palette,
+      () => { options.onDiagramColorsToggle(!options.getDiagramColors()); render() },
+      'Toggle diagram colors',
+      !collapsed ? (colorsOn ? 'Colors: On' : 'Colors: Off') : '',
+    )
+    if (!colorsOn) colorsBtn.style.opacity = '0.4'
+    el.appendChild(colorsBtn)
+
+    // Clear selection button (only visible when participants are selected)
+    const selCount = options.getSelectionCount()
+    if (selCount > 0) {
+      const divider3 = document.createElement('div')
+      divider3.className = 'border-t border-gray-600 my-2 mx-1'
+      el.appendChild(divider3)
+
+      const clearBtn = btn(
+        ICONS.xCircle,
+        () => { options.onClearSelection(); render() },
+        'Clear selection',
+        !collapsed ? `Clear (${selCount})` : '',
+      )
+      clearBtn.id = 'shelf-clear-selection'
+      el.appendChild(clearBtn)
+    }
 
     // File name indicator (spacer + bottom)
     const spacer = document.createElement('div')

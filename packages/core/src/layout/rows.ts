@@ -1,7 +1,7 @@
 import type { Message, StructuralBlock } from '../parser/types'
 import type { ColumnLayout, LayoutConfig, RowLayout } from './types'
 
-const BLOCK_TAG_HEIGHT = 30
+const BLOCK_TAG_HEIGHT = 40
 
 export function layoutRows(
   messages: Message[],
@@ -50,7 +50,7 @@ export function layoutRows(
     }
     // Add gap after a block end before the next row
     if (prevSeq >= 0 && blockEndSeqs.has(prevSeq)) {
-      y += 10
+      y += 30
     }
 
     if (msg) {
@@ -77,6 +77,8 @@ export function layoutRows(
           midX,
           y: rowY - 8,
         },
+        fromId: msg.from,
+        toId: msg.to,
         fromLabel: fromCol.label,
         toLabel: toCol.label,
       })
@@ -88,6 +90,8 @@ export function layoutRows(
         height,
         arrow: { fromX: 0, toX: 0, type: '->>' },
         label: { text: '', midX: 0, y: 0 },
+        fromId: '',
+        toId: '',
         fromLabel: '',
         toLabel: '',
       })

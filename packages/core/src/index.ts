@@ -18,6 +18,7 @@ export interface ViewerOptions {
   theme?: 'light' | 'dark'
   onError?: (err: Error) => void
   onCameraChange?: (camera: Camera) => void
+  onSelectionChange?: (selectedIds: string[]) => void
 }
 
 export interface Viewer {
@@ -27,8 +28,14 @@ export interface Viewer {
   resetView(): void
   resize(): void
   destroy(): void
+  setTheme(name: 'light' | 'dark'): void
+  toggleParticipant(id: string): void
+  clearSelection(): void
   showOffscreenLabels: boolean
   showSourceLabels: boolean
+  showDiagramColors: boolean
+  readonly selectedParticipantIds: string[]
+  readonly themeName: 'light' | 'dark'
   readonly camera: Camera
   readonly ast: SequenceDiagramAST | null
   readonly layout: LayoutModel | null
@@ -39,7 +46,8 @@ export function createViewer(
   options: ViewerOptions = {},
 ): Viewer {
   const ctx = canvas.getContext('2d')!
-  const theme = getTheme(options.theme ?? 'light')
+  let currentThemeName: 'light' | 'dark' = options.theme ?? 'light'
+  let theme = getTheme(currentThemeName)
 
   let currentCamera = createCamera()
   let currentAST: SequenceDiagramAST | null = null
@@ -47,6 +55,8 @@ export function createViewer(
   let rafId: number | null = null
   let offscreenLabels = true
   let sourceLabels = false
+  let diagramColors = true
+  const selectedParticipants = new Set<string>()
 
   const measurer: TextMeasurer = {
     measure(text: string, font: string): number {
@@ -65,7 +75,12 @@ export function createViewer(
 
   function doRender(): void {
     if (!currentAST || !currentLayout) return
-    render(ctx, currentLayout, currentAST, currentCamera, canvas.width, canvas.height, theme, { showOffscreenLabels: offscreenLabels, showSourceLabels: sourceLabels })
+    render(ctx, currentLayout, currentAST, currentCamera, canvas.width, canvas.height, theme, {
+      showOffscreenLabels: offscreenLabels,
+      showSourceLabels: sourceLabels,
+      showDiagramColors: diagramColors,
+      selectedParticipants: selectedParticipants.size > 0 ? selectedParticipants : undefined,
+    })
   }
 
   function updateCanvasSize(): void {
@@ -74,6 +89,44 @@ export function createViewer(
     canvas.width = rect.width * dpr
     canvas.height = rect.height * dpr
     ctx.scale(dpr, dpr)
+  }
+
+  const BOX_HEIGHT = 36
+
+  /** Returns the participant ID under the screen point, or null */
+  function hitTestHeader(screenX: number, screenY: number): string | null {
+    if (!currentLayout) return null
+    const { zoom, x: camX } = currentCamera
+    const diagramX = screenX / zoom + camX
+    const diagramY = screenY / zoom
+    const headerHeight = currentLayout.headerHeight
+
+    if (diagramY < headerHeight) {
+      const boxY = (headerHeight - BOX_HEIGHT) / 2
+      if (diagramY >= boxY && diagramY <= boxY + BOX_HEIGHT) {
+        for (const col of currentLayout.columns) {
+          const boxLeft = col.x - col.width / 2 + 10
+          const boxRight = col.x + col.width / 2 - 10
+          if (diagramX >= boxLeft && diagramX <= boxRight) {
+            return col.participantId
+          }
+        }
+      }
+    }
+    return null
+  }
+
+  function handleCanvasClick(screenX: number, screenY: number): void {
+    const id = hitTestHeader(screenX, screenY)
+    if (id) {
+      if (selectedParticipants.has(id)) {
+        selectedParticipants.delete(id)
+      } else {
+        selectedParticipants.add(id)
+      }
+      options.onSelectionChange?.([...selectedParticipants])
+      scheduleRender()
+    }
   }
 
   const detachInput = attachInputHandlers(canvas, {
@@ -87,6 +140,8 @@ export function createViewer(
       height: canvas.getBoundingClientRect().height,
     }),
     requestRender: scheduleRender,
+    onClick: handleCanvasClick,
+    hitTest: (sx, sy) => hitTestHeader(sx, sy) !== null,
   })
 
   const resizeObserver = new ResizeObserver(() => {
@@ -101,6 +156,7 @@ export function createViewer(
         currentAST = parse(text)
         currentLayout = layout(currentAST, measurer)
         currentCamera = createCamera()
+        selectedParticipants.clear()
         updateCanvasSize()
         doRender()
       } catch (err) {
@@ -139,6 +195,35 @@ export function createViewer(
 
     get showSourceLabels() { return sourceLabels },
     set showSourceLabels(v: boolean) { sourceLabels = v; scheduleRender() },
+
+    get showDiagramColors() { return diagramColors },
+    set showDiagramColors(v: boolean) { diagramColors = v; scheduleRender() },
+
+    setTheme(name: 'light' | 'dark') {
+      currentThemeName = name
+      theme = getTheme(name)
+      scheduleRender()
+    },
+
+    toggleParticipant(id: string) {
+      if (selectedParticipants.has(id)) {
+        selectedParticipants.delete(id)
+      } else {
+        selectedParticipants.add(id)
+      }
+      options.onSelectionChange?.([...selectedParticipants])
+      scheduleRender()
+    },
+
+    clearSelection() {
+      selectedParticipants.clear()
+      options.onSelectionChange?.([...selectedParticipants])
+      scheduleRender()
+    },
+
+    get selectedParticipantIds() { return [...selectedParticipants] },
+
+    get themeName() { return currentThemeName },
 
     get camera() { return currentCamera },
     get ast() { return currentAST },

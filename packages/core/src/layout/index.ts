@@ -15,7 +15,7 @@ export function layout(
 ): LayoutModel {
   const columns = layoutColumns(ast.participants, measurer, config)
   const rows = layoutRows(ast.messages, columns, config, ast.blocks)
-  const blocks = layoutBlocks(ast.blocks, rows, columns, config)
+  const blocks = layoutBlocks(ast.blocks, rows, columns, config, ast.messages)
   const activations = layoutActivations(ast, columns, rows, config)
   const participantBoxes = layoutParticipantBoxes(ast, columns)
 

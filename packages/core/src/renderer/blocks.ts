@@ -12,6 +12,7 @@ export function drawBlocks(
   blocks: BlockLayout[],
   theme: Theme,
   viewport?: BlockViewport,
+  showDiagramColors = true,
 ): void {
   for (const block of blocks) {
     if (block.type === 'note') {
@@ -19,9 +20,9 @@ export function drawBlocks(
     } else if (block.type === 'else') {
       drawElseDivider(ctx, block, theme)
     } else if (block.type === 'rect') {
-      drawRectBlock(ctx, block, theme)
+      if (showDiagramColors) drawRectBlock(ctx, block, theme)
     } else {
-      drawStructuralBlock(ctx, block, theme)
+      drawStructuralBlock(ctx, block, theme, viewport)
     }
   }
 }
@@ -55,7 +56,8 @@ function adaptRectColor(color: string, theme: Theme): string {
   if (!m) return color
 
   const r = Number(m[1]), g = Number(m[2]), b = Number(m[3]), a = Number(m[4] ?? 1)
-  const isLightTheme = theme.background === '#ffffff' || theme.background === '#fff'
+  const bg = theme.background.toLowerCase()
+  const isLightTheme = bg === '#ffffff' || bg === '#fff' || bg === '#fafafa'
 
   // Near-white fill on a light background → invert to near-black
   if (isLightTheme && r > 200 && g > 200 && b > 200) {
@@ -68,6 +70,7 @@ function drawStructuralBlock(
   ctx: CanvasRenderingContext2D,
   block: BlockLayout,
   theme: Theme,
+  viewport?: BlockViewport,
 ): void {
   // Background
   ctx.fillStyle = theme.blockBackground
@@ -78,27 +81,77 @@ function drawStructuralBlock(
   ctx.lineWidth = 1
   ctx.strokeRect(block.x, block.y, block.width, block.height)
 
-  // Label tag
-  const labelText = `${block.type} ${block.label}`
-  ctx.font = theme.blockLabelFont
-  const labelWidth = ctx.measureText(labelText).width + 12
+  // Tag group: [type | label] — sticky to viewport left edge
   const tagHeight = 18
-
-  ctx.fillStyle = theme.blockBorder
-  ctx.beginPath()
-  ctx.moveTo(block.x, block.y)
-  ctx.lineTo(block.x + labelWidth, block.y)
-  ctx.lineTo(block.x + labelWidth, block.y + tagHeight - 4)
-  ctx.lineTo(block.x + labelWidth - 4, block.y + tagHeight)
-  ctx.lineTo(block.x, block.y + tagHeight)
-  ctx.closePath()
-  ctx.fill()
-
-  ctx.fillStyle = '#ffffff'
+  const pad = 6
   ctx.font = theme.blockLabelFont
-  ctx.textAlign = 'left'
-  ctx.textBaseline = 'middle'
-  ctx.fillText(labelText, block.x + 6, block.y + tagHeight / 2)
+  const typeText = block.type
+  const typeWidth = ctx.measureText(typeText).width + pad * 2
+
+  if (block.label) {
+    ctx.font = theme.blockTagLabelFont
+    const labelWidth = ctx.measureText(block.label).width + pad * 2
+    const totalTagWidth = typeWidth + labelWidth
+
+    // Sticky: pin to viewport left, but never past block right edge
+    let tagX = block.x
+    if (viewport) {
+      const viewLeft = viewport.camX
+      const maxTagX = block.x + block.width - totalTagWidth
+      tagX = Math.max(block.x, Math.min(viewLeft, maxTagX))
+    }
+
+    // Type segment (strong)
+    ctx.fillStyle = theme.blockBorder
+    ctx.fillRect(tagX, block.y, typeWidth, tagHeight)
+
+    // Label segment (muted)
+    ctx.fillStyle = theme.blockTagLabelBackground
+    ctx.beginPath()
+    ctx.moveTo(tagX + typeWidth, block.y)
+    ctx.lineTo(tagX + typeWidth + labelWidth, block.y)
+    ctx.lineTo(tagX + typeWidth + labelWidth, block.y + tagHeight - 4)
+    ctx.lineTo(tagX + typeWidth + labelWidth - 4, block.y + tagHeight)
+    ctx.lineTo(tagX + typeWidth, block.y + tagHeight)
+    ctx.closePath()
+    ctx.fill()
+
+    // Type text
+    ctx.fillStyle = '#ffffff'
+    ctx.font = theme.blockLabelFont
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(typeText, tagX + pad, block.y + tagHeight / 2)
+
+    // Label text
+    ctx.fillStyle = theme.blockTagLabelText
+    ctx.font = theme.blockTagLabelFont
+    ctx.fillText(block.label, tagX + typeWidth + pad, block.y + tagHeight / 2)
+  } else {
+    // Type-only tag with angled corner — also sticky
+    let tagX = block.x
+    if (viewport) {
+      const viewLeft = viewport.camX
+      const maxTagX = block.x + block.width - typeWidth
+      tagX = Math.max(block.x, Math.min(viewLeft, maxTagX))
+    }
+
+    ctx.fillStyle = theme.blockBorder
+    ctx.beginPath()
+    ctx.moveTo(tagX, block.y)
+    ctx.lineTo(tagX + typeWidth, block.y)
+    ctx.lineTo(tagX + typeWidth, block.y + tagHeight - 4)
+    ctx.lineTo(tagX + typeWidth - 4, block.y + tagHeight)
+    ctx.lineTo(tagX, block.y + tagHeight)
+    ctx.closePath()
+    ctx.fill()
+
+    ctx.fillStyle = '#ffffff'
+    ctx.font = theme.blockLabelFont
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(typeText, tagX + pad, block.y + tagHeight / 2)
+  }
 }
 
 function drawNote(

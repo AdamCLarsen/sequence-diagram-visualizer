@@ -15,6 +15,8 @@ export function drawHeaders(
   canvasWidth?: number,
   zoom?: number,
   participantBoxes?: ParticipantBoxLayout[],
+  showDiagramColors = true,
+  selectedParticipants?: Set<string>,
 ): void {
   const participantMap = new Map(participants.map((p) => [p.id, p]))
 
@@ -26,7 +28,7 @@ export function drawHeaders(
   ctx.fillRect(cx - 10, 0, viewWidth + 20, headerHeight)
 
   // Draw participant box backgrounds in header area
-  if (participantBoxes) {
+  if (participantBoxes && showDiagramColors) {
     for (const box of participantBoxes) {
       if (!box.color) continue
       ctx.fillStyle = box.color
@@ -38,20 +40,33 @@ export function drawHeaders(
   for (const col of columns) {
     const participant = participantMap.get(col.participantId)
     const isActor = participant?.type === 'actor'
+    const isSelected = selectedParticipants?.has(col.participantId)
+    const dim = selectedParticipants && !isSelected
 
     const boxY = (headerHeight - BOX_HEIGHT) / 2
+
+    if (dim) ctx.globalAlpha = 0.35
 
     if (isActor) {
       drawActorIcon(ctx, col.x, boxY + BOX_HEIGHT / 2, theme)
     } else {
       // Rectangle box
       ctx.fillStyle = theme.participantBox
-      ctx.strokeStyle = theme.participantBoxBorder
-      ctx.lineWidth = 1.5
+      ctx.strokeStyle = isSelected ? theme.activationBorder : theme.participantBoxBorder
+      ctx.lineWidth = isSelected ? 2 : 1.5
 
       ctx.beginPath()
       ctx.roundRect(col.x - col.width / 2 + 10, boxY, col.width - 20, BOX_HEIGHT, BOX_RADIUS)
       ctx.fill()
+      ctx.stroke()
+    }
+
+    // Selection ring for actors
+    if (isSelected && isActor) {
+      ctx.strokeStyle = theme.activationBorder
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.roundRect(col.x - col.width / 2 + 10, boxY, col.width - 20, BOX_HEIGHT, BOX_RADIUS)
       ctx.stroke()
     }
 
@@ -61,6 +76,8 @@ export function drawHeaders(
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText(col.label, col.x, headerHeight / 2 + (isActor ? 14 : 0))
+
+    if (dim) ctx.globalAlpha = 1.0
   }
 
   // Divider line at bottom

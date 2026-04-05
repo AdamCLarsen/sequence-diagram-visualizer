@@ -6,7 +6,9 @@ export function drawParticipantBoxes(
   viewportTop: number,
   viewportBottom: number,
   diagramHeight: number,
+  showColors = true,
 ): void {
+  if (!showColors) return
   const top = Math.min(0, viewportTop)
   const bottom = Math.max(diagramHeight, viewportBottom)
 

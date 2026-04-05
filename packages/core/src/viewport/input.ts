@@ -7,6 +7,8 @@ export interface InputHandlerOptions {
   getDiagramSize: () => { width: number; height: number }
   getCanvasSize: () => { width: number; height: number }
   requestRender: () => void
+  onClick?: (screenX: number, screenY: number) => void
+  hitTest?: (screenX: number, screenY: number) => boolean
 }
 
 export function attachInputHandlers(
@@ -16,6 +18,9 @@ export function attachInputHandlers(
   let isDragging = false
   let lastX = 0
   let lastY = 0
+  let startX = 0
+  let startY = 0
+  const CLICK_THRESHOLD = 5
 
   const onWheel = (e: WheelEvent) => {
     e.preventDefault()
@@ -48,11 +53,26 @@ export function attachInputHandlers(
     isDragging = true
     lastX = e.clientX
     lastY = e.clientY
+    startX = e.clientX
+    startY = e.clientY
     canvas.style.cursor = 'grabbing'
   }
 
+  function updateCursor(e: MouseEvent): void {
+    if (options.hitTest) {
+      const rect = canvas.getBoundingClientRect()
+      const isOver = options.hitTest(e.clientX - rect.left, e.clientY - rect.top)
+      canvas.style.cursor = isOver ? 'pointer' : 'grab'
+    } else {
+      canvas.style.cursor = 'grab'
+    }
+  }
+
   const onMouseMove = (e: MouseEvent) => {
-    if (!isDragging) return
+    if (!isDragging) {
+      updateCursor(e)
+      return
+    }
 
     const dx = -(e.clientX - lastX) / options.getCamera().zoom
     const dy = -(e.clientY - lastY) / options.getCamera().zoom
@@ -68,9 +88,15 @@ export function attachInputHandlers(
     options.requestRender()
   }
 
-  const onMouseUp = () => {
+  const onMouseUp = (e: MouseEvent) => {
+    const dx = Math.abs(e.clientX - startX)
+    const dy = Math.abs(e.clientY - startY)
+    if (isDragging && dx < CLICK_THRESHOLD && dy < CLICK_THRESHOLD) {
+      const rect = canvas.getBoundingClientRect()
+      options.onClick?.(e.clientX - rect.left, e.clientY - rect.top)
+    }
     isDragging = false
-    canvas.style.cursor = 'grab'
+    updateCursor(e)
   }
 
   canvas.style.cursor = 'grab'

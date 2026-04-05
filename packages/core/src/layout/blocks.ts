@@ -1,4 +1,4 @@
-import type { StructuralBlock } from '../parser/types'
+import type { StructuralBlock, Message } from '../parser/types'
 import type { ColumnLayout, RowLayout, LayoutConfig, BlockLayout } from './types'
 
 export function layoutBlocks(
@@ -6,10 +6,12 @@ export function layoutBlocks(
   rows: RowLayout[],
   columns: ColumnLayout[],
   config: LayoutConfig,
+  messages?: Message[],
 ): BlockLayout[] {
   const result: BlockLayout[] = []
 
   const rowMap = new Map(rows.map((r) => [r.messageIndex, r]))
+  const colMap = new Map(columns.map((c) => [c.participantId, c]))
   const totalWidth = columns.length > 0
     ? columns[columns.length - 1].x + columns[columns.length - 1].width / 2
     : 0
@@ -26,16 +28,21 @@ export function layoutBlocks(
     if (!startRow && !endRow) continue
 
     const indent = block.depth * config.blockIndent
-    const blockPad = 18
+    const blockPad = 30
     const y = startRow ? startRow.y - blockPad : 0
     const endY = endRow ? endRow.y + endRow.height + blockPad : y + config.rowHeight
+
+    // Compute x/width from the participants used within this block's sequence range
+    const span = getBlockSpan(block, messages, colMap, columns)
+    const x = span ? span.left - indent - 20 : indent + 10
+    const width = span ? span.right - span.left + indent * 2 + 40 : totalWidth - indent * 2 - 20
 
     result.push({
       type: block.type,
       label: block.label,
-      x: indent + 10,
+      x,
       y,
-      width: totalWidth - indent * 2 - 20,
+      width,
       height: endY - y,
       depth: block.depth,
       color: block.color,
@@ -49,9 +56,9 @@ export function layoutBlocks(
           result.push({
             type: 'else',
             label: clause.label,
-            x: indent + 10,
+            x,
             y: clauseRow.y - blockPad,
-            width: totalWidth - indent * 2 - 20,
+            width,
             height: 2,
             depth: block.depth,
           })
@@ -61,11 +68,45 @@ export function layoutBlocks(
 
     // Recurse into children
     if (block.children) {
-      result.push(...layoutBlocks(block.children, rows, columns, config))
+      result.push(...layoutBlocks(block.children, rows, columns, config, messages))
     }
   }
 
   return result
+}
+
+/** Find the leftmost and rightmost column x for participants used in a block's sequence range */
+function getBlockSpan(
+  block: StructuralBlock,
+  messages: Message[] | undefined,
+  colMap: Map<string, ColumnLayout>,
+  columns: ColumnLayout[],
+): { left: number; right: number } | null {
+  if (!messages || columns.length === 0) return null
+
+  // Collect all sequence indices covered by this block (including else clauses)
+  const startSeq = block.startSeq
+  const endSeq = block.endSeq
+
+  let minX = Infinity
+  let maxX = -Infinity
+
+  for (const msg of messages) {
+    if (msg.sequenceIndex < startSeq || msg.sequenceIndex > endSeq) continue
+    const fromCol = colMap.get(msg.from)
+    const toCol = colMap.get(msg.to)
+    if (fromCol) {
+      minX = Math.min(minX, fromCol.x)
+      maxX = Math.max(maxX, fromCol.x)
+    }
+    if (toCol) {
+      minX = Math.min(minX, toCol.x)
+      maxX = Math.max(maxX, toCol.x)
+    }
+  }
+
+  if (minX === Infinity) return null
+  return { left: minX, right: maxX }
 }
 
 function noteHeight(label: string): number {
