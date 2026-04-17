@@ -16,6 +16,12 @@ export function layoutBlocks(
     ? columns[columns.length - 1].x + columns[columns.length - 1].width / 2
     : 0
 
+  // First pass: compute each block's layout independently. Structural blocks
+  // keep a back-reference to their source so we can expand outer blocks to
+  // contain inner ones in a second pass.
+  interface Entry { layout: BlockLayout; block: StructuralBlock; elseLayouts: BlockLayout[] }
+  const entries: Entry[] = []
+
   for (const block of blocks) {
     if (block.type === 'note') {
       const layout = layoutNote(block, columns, rowMap, config)
@@ -32,12 +38,11 @@ export function layoutBlocks(
     const y = startRow ? startRow.y - blockPad : 0
     const endY = endRow ? endRow.y + endRow.height + blockPad : y + config.rowHeight
 
-    // Compute x/width from the participants used within this block's sequence range
     const span = getBlockSpan(block, messages, colMap, columns)
     const x = span ? span.left - indent - 20 : indent + 10
     const width = span ? span.right - span.left + indent * 2 + 40 : totalWidth - indent * 2 - 20
 
-    result.push({
+    const layout: BlockLayout = {
       type: block.type,
       label: block.label,
       x,
@@ -46,14 +51,13 @@ export function layoutBlocks(
       height: endY - y,
       depth: block.depth,
       color: block.color,
-    })
-
-    // Layout else clause dividers as separate blocks
+    }
+    const elseLayouts: BlockLayout[] = []
     if (block.elseClauses) {
       for (const clause of block.elseClauses) {
         const clauseRow = rowMap.get(clause.startSeq)
         if (clauseRow) {
-          result.push({
+          elseLayouts.push({
             type: 'else',
             label: clause.label,
             x,
@@ -65,14 +69,53 @@ export function layoutBlocks(
         }
       }
     }
+    entries.push({ layout, block, elseLayouts })
+  }
 
-    // Recurse into children
-    if (block.children) {
-      result.push(...layoutBlocks(block.children, rows, columns, config, messages))
+  // Second pass: for every (outer, inner) pair where outer's sequence range
+  // fully contains inner's, expand outer's bounds to hold inner. Sorting
+  // inner-first ensures an inner block's already-expanded size is visible to
+  // the next outer that contains it (handles 3+ levels of nesting).
+  const containPad = 10
+  const bySpan = [...entries].sort(
+    (a, b) => (a.block.endSeq - a.block.startSeq) - (b.block.endSeq - b.block.startSeq),
+  )
+  for (const inner of bySpan) {
+    for (const outer of entries) {
+      if (outer === inner) continue
+      if (!fullyContains(outer.block, inner.block)) continue
+      expandToContain(outer.layout, inner.layout, containPad)
+    }
+  }
+
+  // Propagate the outer block's expanded x/width to its own else dividers.
+  for (const entry of entries) {
+    result.push(entry.layout)
+    for (const elseLayout of entry.elseLayouts) {
+      elseLayout.x = entry.layout.x
+      elseLayout.width = entry.layout.width
+      result.push(elseLayout)
     }
   }
 
   return result
+}
+
+function fullyContains(outer: StructuralBlock, inner: StructuralBlock): boolean {
+  if (outer.startSeq > inner.startSeq || outer.endSeq < inner.endSeq) return false
+  // Equal ranges aren't containment — one has to strictly enclose the other.
+  return outer.startSeq < inner.startSeq || outer.endSeq > inner.endSeq
+}
+
+function expandToContain(outer: BlockLayout, inner: BlockLayout, pad: number): void {
+  const right = Math.max(outer.x + outer.width, inner.x + inner.width + pad)
+  const bottom = Math.max(outer.y + outer.height, inner.y + inner.height + pad)
+  const left = Math.min(outer.x, inner.x - pad)
+  const top = Math.min(outer.y, inner.y - pad)
+  outer.x = left
+  outer.y = top
+  outer.width = right - left
+  outer.height = bottom - top
 }
 
 /** Find the leftmost and rightmost column x for participants used in a block's sequence range */
