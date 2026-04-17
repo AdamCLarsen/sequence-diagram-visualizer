@@ -20,16 +20,28 @@ export function drawBlocks(
   const drawBg = phase === 'background' || phase === 'all'
   const drawFg = phase === 'overlay' || phase === 'all'
 
-  for (const block of blocks) {
-    if (block.type === 'note') {
-      if (drawFg) drawNote(ctx, block, theme, viewport)
-    } else if (block.type === 'else') {
-      if (drawFg) drawElseDivider(ctx, block, theme)
-    } else if (block.type === 'rect') {
-      if (drawBg && showDiagramColors) drawRectBlock(ctx, block, theme)
-    } else {
-      if (drawBg) drawStructuralBlockBackground(ctx, block, theme)
-      if (drawFg) drawStructuralBlockTag(ctx, block, theme, viewport)
+  // Paint backgrounds outer-to-inner so an outer rect/block fill doesn't
+  // cover the borders or tinted fill of blocks nested inside it.
+  if (drawBg) {
+    const bgOrdered = [...blocks].sort((a, b) => a.depth - b.depth)
+    for (const block of bgOrdered) {
+      if (block.type === 'rect') {
+        if (showDiagramColors) drawRectBlock(ctx, block, theme)
+      } else if (block.type !== 'note' && block.type !== 'else') {
+        drawStructuralBlockBackground(ctx, block, theme)
+      }
+    }
+  }
+
+  if (drawFg) {
+    for (const block of blocks) {
+      if (block.type === 'note') {
+        drawNote(ctx, block, theme, viewport)
+      } else if (block.type === 'else') {
+        drawElseDivider(ctx, block, theme)
+      } else if (block.type !== 'rect') {
+        drawStructuralBlockTag(ctx, block, theme, viewport)
+      }
     }
   }
 }
