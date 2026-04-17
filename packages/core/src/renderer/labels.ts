@@ -5,6 +5,11 @@ const LABEL_PAD = 20
 const SOURCE_ICON_W = 10
 const SOURCE_ICON_H = 10
 const SOURCE_ICON_PAD = 3
+const LABEL_LINE_HEIGHT = 16
+
+function splitLabelLines(text: string): string[] {
+  return text.split(/<br\s*\/?>/i).map((s) => s.trim())
+}
 
 /** Draw a small corner-down-left arrow icon inline before/after the source label */
 function drawSourceIcon(
@@ -125,7 +130,7 @@ export function drawLabel(
       (row.arrow.fromX >= viewLeftEdge && row.arrow.fromX <= viewRightEdge) ||
       (row.arrow.toX >= viewLeftEdge && row.arrow.toX <= viewRightEdge)
     if (!hasVisible) return
-    const arrowY = row.y + row.height / 2
+    const arrowY = row.arrowY
     const srcY = arrowY - 8
     if (fromOff && row.fromLabel) {
       const annX = fromOffRight ? computeRightAlignedX(ctx, row.fromLabel, rightEdge, theme) : leftEdge
@@ -141,7 +146,8 @@ export function drawLabel(
 
   const midX = row.label.midX
 
-  const text = row.label.text
+  const lines = splitLabelLines(row.label.text)
+  const lineCount = Math.max(1, lines.length)
 
   // Check if either endpoint lifeline is visible on screen
   const hasVisibleLifeline =
@@ -155,32 +161,40 @@ export function drawLabel(
   ctx.font = theme.labelFont
   ctx.fillStyle = theme.labelText
 
-  const textWidth = ctx.measureText(text).width
-  let x = midX - textWidth / 2
+  let maxLineWidth = 0
+  for (const line of lines) {
+    const w = ctx.measureText(line).width
+    if (w > maxLineWidth) maxLineWidth = w
+  }
+  let x = midX - maxLineWidth / 2
 
   // Prevent text from being clipped by the visible edges
-  if (x + textWidth > rightEdge) {
-    x = rightEdge - textWidth
+  if (x + maxLineWidth > rightEdge) {
+    x = rightEdge - maxLineWidth
   }
   if (x < leftEdge) {
     x = leftEdge
   }
 
-  // Background for readability
+  // Background for readability — spans all lines of the label block
   const pad = 3
+  const bottomBaseline = row.label.y
+  const topLineBaseline = bottomBaseline - (lineCount - 1) * LABEL_LINE_HEIGHT
+  const bgTop = topLineBaseline - 12
+  const bgHeight = (lineCount - 1) * LABEL_LINE_HEIGHT + 16
   ctx.fillStyle = theme.background
   ctx.globalAlpha = 0.85
-  ctx.fillRect(x - pad, row.label.y - 12, textWidth + pad * 2, 16)
+  ctx.fillRect(x - pad, bgTop, maxLineWidth + pad * 2, bgHeight)
   ctx.globalAlpha = 1.0
 
-  // Draw autonumber badge
+  // Draw autonumber badge (align with the top line of the label block)
   if (autonumber) {
     const badgeText = String(row.messageIndex + 1)
     ctx.font = theme.autonumberFont
     const badgeW = ctx.measureText(badgeText).width + 8
     const badgeH = 14
     const badgeX = x - badgeW - 4
-    const badgeY = row.label.y - 11
+    const badgeY = topLineBaseline - 11
 
     ctx.fillStyle = theme.autonumberBadge
     ctx.beginPath()
@@ -201,13 +215,13 @@ export function drawLabel(
     const fromOffRight = row.arrow.fromX > viewRightEdge
     const toOffLeft = row.arrow.toX < viewLeftEdge
     const toOffRight = row.arrow.toX > viewRightEdge
-    const arrowY = row.y + row.height / 2
+    const arrowY = row.arrowY
     // Stack above label when annotation is on the same side as the label text;
     // anchor to arrow line when they're on opposite sides (no overlap possible)
     const viewCenterX = cameraX + viewportWidth / zoom / 2
-    const labelOnLeft = x + textWidth / 2 < viewCenterX
-    let leftY = labelOnLeft ? row.label.y - 14 : arrowY - 8
-    let rightY = !labelOnLeft ? row.label.y - 14 : arrowY - 8
+    const labelOnLeft = x + maxLineWidth / 2 < viewCenterX
+    let leftY = labelOnLeft ? topLineBaseline - 14 : arrowY - 8
+    let rightY = !labelOnLeft ? topLineBaseline - 14 : arrowY - 8
     if ((fromOffLeft || fromOffRight) && row.fromLabel) {
       if (fromOffRight) {
         const annX = computeRightAlignedX(ctx, row.fromLabel, rightEdge, theme)
@@ -228,10 +242,15 @@ export function drawLabel(
     }
   }
 
-  // Draw label text
+  // Draw label text — each <br/>-separated line stacked above the arrow
   ctx.font = theme.labelFont
   ctx.fillStyle = theme.labelText
   ctx.textAlign = 'left'
   ctx.textBaseline = 'alphabetic'
-  ctx.fillText(text, x, row.label.y)
+  for (let i = 0; i < lineCount; i++) {
+    const baselineY = bottomBaseline - (lineCount - 1 - i) * LABEL_LINE_HEIGHT
+    const lineText = lines[i] ?? ''
+    const lineW = ctx.measureText(lineText).width
+    ctx.fillText(lineText, x + (maxLineWidth - lineW) / 2, baselineY)
+  }
 }

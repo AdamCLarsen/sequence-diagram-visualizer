@@ -7,22 +7,29 @@ export interface BlockViewport {
   zoom: number
 }
 
+export type BlockPhase = 'background' | 'overlay' | 'all'
+
 export function drawBlocks(
   ctx: CanvasRenderingContext2D,
   blocks: BlockLayout[],
   theme: Theme,
   viewport?: BlockViewport,
   showDiagramColors = true,
+  phase: BlockPhase = 'all',
 ): void {
+  const drawBg = phase === 'background' || phase === 'all'
+  const drawFg = phase === 'overlay' || phase === 'all'
+
   for (const block of blocks) {
     if (block.type === 'note') {
-      drawNote(ctx, block, theme, viewport)
+      if (drawFg) drawNote(ctx, block, theme, viewport)
     } else if (block.type === 'else') {
-      drawElseDivider(ctx, block, theme)
+      if (drawFg) drawElseDivider(ctx, block, theme)
     } else if (block.type === 'rect') {
-      if (showDiagramColors) drawRectBlock(ctx, block, theme)
+      if (drawBg && showDiagramColors) drawRectBlock(ctx, block, theme)
     } else {
-      drawStructuralBlock(ctx, block, theme, viewport)
+      if (drawBg) drawStructuralBlockBackground(ctx, block, theme)
+      if (drawFg) drawStructuralBlockTag(ctx, block, theme, viewport)
     }
   }
 }
@@ -66,21 +73,25 @@ function adaptRectColor(color: string, theme: Theme): string {
   return color
 }
 
-function drawStructuralBlock(
+function drawStructuralBlockBackground(
+  ctx: CanvasRenderingContext2D,
+  block: BlockLayout,
+  theme: Theme,
+): void {
+  ctx.fillStyle = theme.blockBackground
+  ctx.fillRect(block.x, block.y, block.width, block.height)
+
+  ctx.strokeStyle = theme.blockBorder
+  ctx.lineWidth = 1
+  ctx.strokeRect(block.x, block.y, block.width, block.height)
+}
+
+function drawStructuralBlockTag(
   ctx: CanvasRenderingContext2D,
   block: BlockLayout,
   theme: Theme,
   viewport?: BlockViewport,
 ): void {
-  // Background
-  ctx.fillStyle = theme.blockBackground
-  ctx.fillRect(block.x, block.y, block.width, block.height)
-
-  // Border
-  ctx.strokeStyle = theme.blockBorder
-  ctx.lineWidth = 1
-  ctx.strokeRect(block.x, block.y, block.width, block.height)
-
   // Tag group: [type | label] — sticky to viewport left edge
   const tagHeight = 18
   const pad = 6

@@ -43,7 +43,7 @@ export function layout(
 function layoutActivations(
   ast: SequenceDiagramAST,
   columns: { participantId: string; x: number }[],
-  rows: { messageIndex: number; y: number; height: number }[],
+  rows: { messageIndex: number; y: number; height: number; arrowY: number }[],
   config: LayoutConfig,
 ): ActivationLayout[] {
   const colMap = new Map(columns.map((c) => [c.participantId, c]))
@@ -67,8 +67,8 @@ function layoutActivations(
     result.push({
       participantId: act.participantId,
       x: col.x - config.activationBarWidth / 2 + level * 4,
-      startY: startRow.y + startRow.height / 2 - 8,
-      endY: (endRow ? endRow.y + endRow.height / 2 : startRow.y + config.rowHeight) + 8,
+      startY: startRow.arrowY - 8,
+      endY: (endRow ? endRow.arrowY : startRow.y + config.rowHeight) + 8,
       nestLevel: level,
     })
   }

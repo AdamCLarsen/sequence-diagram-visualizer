@@ -47,6 +47,11 @@ export function render(
   const showColors = renderOptions.showDiagramColors ?? true
   drawParticipantBoxes(ctx, layoutModel.participantBoxes, viewportTop, viewportBottom, layoutModel.height, showColors)
 
+  // Structural block BACKGROUNDS — drawn behind lifelines/activations/arrows
+  // so block fills read as a backdrop rather than covering content.
+  const blockViewport = { camX, canvasWidth, zoom }
+  drawBlocks(ctx, layoutModel.blocks, theme, blockViewport, showColors, 'background')
+
   // Lifelines — extend from visible top to visible bottom
   const lifelineStart = Math.min(layoutModel.headerHeight, viewportTop)
   drawLifelines(ctx, layoutModel.columns, lifelineStart, layoutModel.height, theme, viewportBottom, selected)
@@ -64,9 +69,6 @@ export function render(
     if (dimAct) ctx.globalAlpha = 1.0
   }
 
-  // Structural blocks
-  drawBlocks(ctx, layoutModel.blocks, theme, { camX, canvasWidth, zoom }, showColors)
-
   // Arrows and labels (skip spacer rows — they have both arrow endpoints at 0)
   // Use CSS viewport width (not device pixels) for correct world-space calculations
   const dpr = window.devicePixelRatio || 1
@@ -75,13 +77,17 @@ export function render(
     if (row.arrow.fromX === 0 && row.arrow.toX === 0) continue
     const dimRow = selected && !selected.has(row.fromId) && !selected.has(row.toId)
     if (dimRow) ctx.globalAlpha = DIM_ALPHA
-    drawArrow(ctx, row.arrow.fromX, row.arrow.toX, row.y + row.height / 2, row.arrow.type, theme)
+    drawArrow(ctx, row.arrow.fromX, row.arrow.toX, row.arrowY, row.arrow.type, theme)
     const showSource = renderOptions.showSourceLabels ?? false
     if (row.label.text || showSource) {
       drawLabel(ctx, row, camX, cssViewportWidth, zoom, ast.autonumber, theme, showSource)
     }
     if (dimRow) ctx.globalAlpha = 1.0
   }
+
+  // Structural block OVERLAYS — tags, else dividers, notes — drawn on top so
+  // they remain visible across lifelines and arrows.
+  drawBlocks(ctx, layoutModel.blocks, theme, blockViewport, showColors, 'overlay')
 
   ctx.restore()
 

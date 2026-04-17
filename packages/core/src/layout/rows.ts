@@ -2,6 +2,11 @@ import type { Message, StructuralBlock } from '../parser/types'
 import type { ColumnLayout, LayoutConfig, RowLayout } from './types'
 
 const BLOCK_TAG_HEIGHT = 40
+const LABEL_LINE_HEIGHT = 16
+
+export function splitLabelLines(label: string): string[] {
+  return label.split(/<br\s*\/?>/i).map((s) => s.trim())
+}
 
 export function layoutRows(
   messages: Message[],
@@ -41,8 +46,12 @@ export function layoutRows(
     const msg = msgMap.get(seq)
     // Compact rows for messages with no label text; note spacers keep full height
     const isNoteSpacerRow = !msg && noteSeqs.has(seq)
-    const hasLabel = msg ? msg.label.trim().length > 0 : false
-    const height = (hasLabel || isNoteSpacerRow) ? config.rowHeight : Math.round(config.rowHeight * 0.55)
+    const labelLines = msg ? splitLabelLines(msg.label) : []
+    const hasLabel = labelLines.some((l) => l.length > 0)
+    const extraHeight = hasLabel ? (labelLines.length - 1) * LABEL_LINE_HEIGHT : 0
+    const height = (hasLabel || isNoteSpacerRow)
+      ? config.rowHeight + extraHeight
+      : Math.round(config.rowHeight * 0.55)
 
     // Add top padding when this row starts a block (space for the block tag)
     if (blockStartSeqs.has(seq)) {
@@ -58,7 +67,13 @@ export function layoutRows(
       const toCol = colMap.get(msg.to)
       if (!fromCol || !toCol) continue
 
-      const rowY = y + height / 2
+      // Keep the arrow at a consistent offset from the row bottom so that
+      // multi-line labels can stack above it without shifting the arrow
+      // line into neighbouring rows. For compact (label-less) rows fall back
+      // to the center.
+      const arrowY = hasLabel
+        ? y + height - config.rowHeight / 2
+        : y + height / 2
       const fromX = fromCol.x
       const toX = toCol.x
       const midX = (fromX + toX) / 2
@@ -67,6 +82,7 @@ export function layoutRows(
         messageIndex: msg.sequenceIndex,
         y,
         height,
+        arrowY,
         arrow: {
           fromX,
           toX,
@@ -75,7 +91,7 @@ export function layoutRows(
         label: {
           text: msg.label,
           midX,
-          y: rowY - 8,
+          y: arrowY - 8,
         },
         fromId: msg.from,
         toId: msg.to,
@@ -88,6 +104,7 @@ export function layoutRows(
         messageIndex: seq,
         y,
         height,
+        arrowY: y + height / 2,
         arrow: { fromX: 0, toX: 0, type: '->>' },
         label: { text: '', midX: 0, y: 0 },
         fromId: '',
