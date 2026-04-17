@@ -75,7 +75,7 @@ export function render(
     if (row.arrow.fromX === 0 && row.arrow.toX === 0) continue
     const dimRow = selected && !selected.has(row.fromId) && !selected.has(row.toId)
     if (dimRow) ctx.globalAlpha = DIM_ALPHA
-    drawArrow(ctx, row.arrow.fromX, row.arrow.toX, row.y + row.height / 2, row.arrow.type, theme)
+    drawArrow(ctx, row.arrow.fromX, row.arrow.toX, row.arrowY, row.arrow.type, theme)
     const showSource = renderOptions.showSourceLabels ?? false
     if (row.label.text || showSource) {
       drawLabel(ctx, row, camX, cssViewportWidth, zoom, ast.autonumber, theme, showSource)

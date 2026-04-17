@@ -148,6 +148,37 @@ describe('Layout Engine', () => {
     })
   })
 
+  describe('with multi-line message labels', () => {
+    const singleAst = parse(`sequenceDiagram
+    Alice->>Bob: hello world`)
+    const multiAst = parse(`sequenceDiagram
+    Alice->>Bob: hello<br/>world<br/>!`)
+
+    const singleModel = layout(singleAst, mockMeasurer)
+    const multiModel = layout(multiAst, mockMeasurer)
+
+    it('grows row height for each <br/> in the label', () => {
+      const single = singleModel.rows[0]
+      const multi = multiModel.rows[0]
+      expect(multi.height).toBeGreaterThan(single.height)
+      // Two <br/>s = two extra 16px lines
+      expect(multi.height - single.height).toBe(32)
+    })
+
+    it('keeps the arrow line anchored near the row bottom so labels stack above', () => {
+      const multi = multiModel.rows[0]
+      expect(multi.arrowY).toBeGreaterThan(multi.y)
+      expect(multi.arrowY).toBeLessThanOrEqual(multi.y + multi.height)
+      // Label baseline sits just above the arrow
+      expect(multi.label.y).toBeLessThan(multi.arrowY)
+    })
+
+    it('does not add extra height when the label has no <br/>', () => {
+      const single = singleModel.rows[0]
+      expect(single.arrowY).toBe(single.y + single.height / 2)
+    })
+  })
+
   describe('with activations', () => {
     const actAst = parse(`sequenceDiagram
     Alice->>+Bob: Request

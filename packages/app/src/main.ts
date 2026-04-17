@@ -173,12 +173,21 @@ function init() {
     if (active) {
       container.classList.remove('hidden')
       canvas.classList.add('hidden')
-      pasteInput = createPasteInput(container, (text) => {
-        viewer.load(text)
-        updateUrlWithDiagram()
-        canvas.classList.remove('hidden')
-        viewer.resize()
-      })
+      pasteInput = createPasteInput(
+        container,
+        (text) => {
+          viewer.load(text)
+          updateUrlWithDiagram()
+          canvas.classList.remove('hidden')
+          viewer.resize()
+        },
+        {
+          onClose: () => {
+            handlePasteToggle(false, container)
+            shelf.setPasteActive(false)
+          },
+        },
+      )
     } else {
       container.classList.add('hidden')
       canvas.classList.remove('hidden')

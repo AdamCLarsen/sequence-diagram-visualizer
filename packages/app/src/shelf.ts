@@ -22,6 +22,7 @@ export interface Shelf {
   element: HTMLElement
   setFileName(name: string | null): void
   setReloadVisible(visible: boolean): void
+  setPasteActive(active: boolean): void
   updateZoom(): void
   refresh(): void
   destroy(): void
@@ -208,6 +209,12 @@ export function createShelf(options: ShelfOptions): Shelf {
     setReloadVisible(visible: boolean) {
       const reloadBtn = el.querySelector('#shelf-reload') as HTMLElement
       if (reloadBtn) reloadBtn.style.display = visible ? '' : 'none'
+    },
+
+    setPasteActive(active: boolean) {
+      if (pasteActive === active) return
+      pasteActive = active
+      render()
     },
 
     refresh() { render() },
