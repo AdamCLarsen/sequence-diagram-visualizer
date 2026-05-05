@@ -41,6 +41,27 @@ export function createPasteInput(
   textarea.addEventListener('input', handleInput)
   container.appendChild(textarea)
 
+  const clearBtn = document.createElement('button')
+  clearBtn.type = 'button'
+  clearBtn.title = 'Clear text'
+  clearBtn.setAttribute('aria-label', 'Clear text')
+  clearBtn.textContent = 'Clear'
+  clearBtn.className =
+    'absolute top-2 right-14 z-10 h-9 px-4 flex items-center justify-center rounded-full ' +
+    'bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm font-medium shadow'
+  const handleClear = () => {
+    if (timer) {
+      clearTimeout(timer)
+      timer = null
+    }
+    textarea.value = ''
+    localStorage.setItem(STORAGE_KEY, '')
+    onUpdate('')
+    textarea.focus()
+  }
+  clearBtn.addEventListener('click', handleClear)
+  container.appendChild(clearBtn)
+
   // Floating close button in the top-right of the paste overlay.
   let closeBtn: HTMLButtonElement | null = null
   if (options.onClose) {
@@ -70,7 +91,9 @@ export function createPasteInput(
     destroy: () => {
       if (timer) clearTimeout(timer)
       textarea.removeEventListener('input', handleInput)
+      clearBtn.removeEventListener('click', handleClear)
       textarea.remove()
+      clearBtn.remove()
       closeBtn?.remove()
     },
   }

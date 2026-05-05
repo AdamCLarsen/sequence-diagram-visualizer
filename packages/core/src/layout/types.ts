@@ -31,6 +31,7 @@ export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
 export interface ColumnLayout {
   participantId: string
   label: string
+  labelLines: string[]
   x: number
   width: number
 }

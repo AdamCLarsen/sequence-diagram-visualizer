@@ -8,15 +8,28 @@ import { layoutBlocks } from './blocks'
 export type { TextMeasurer, LayoutConfig, LayoutModel }
 export { DEFAULT_LAYOUT_CONFIG }
 
+const HEADER_LINE_HEIGHT = 16
+
 export function layout(
   ast: SequenceDiagramAST,
   measurer: TextMeasurer,
   config: LayoutConfig = DEFAULT_LAYOUT_CONFIG,
 ): LayoutModel {
   const columns = layoutColumns(ast.participants, measurer, config)
-  const rows = layoutRows(ast.messages, columns, config, ast.blocks)
-  const blocks = layoutBlocks(ast.blocks, rows, columns, config, ast.messages)
-  const activations = layoutActivations(ast, columns, rows, config)
+
+  const headerLineCount = columns.reduce(
+    (max, col) => Math.max(max, col.labelLines.length),
+    1,
+  )
+  const headerExtra = (headerLineCount - 1) * HEADER_LINE_HEIGHT
+  const effectiveConfig: LayoutConfig =
+    headerExtra > 0
+      ? { ...config, headerHeight: config.headerHeight + headerExtra }
+      : config
+
+  const rows = layoutRows(ast.messages, columns, effectiveConfig, ast.blocks)
+  const blocks = layoutBlocks(ast.blocks, rows, columns, effectiveConfig, ast.messages)
+  const activations = layoutActivations(ast, columns, rows, effectiveConfig)
   const participantBoxes = layoutParticipantBoxes(ast, columns)
 
   const totalWidth = columns.length > 0
@@ -26,12 +39,12 @@ export function layout(
   const lastRow = rows[rows.length - 1]
   const totalHeight = lastRow
     ? lastRow.y + lastRow.height + 40
-    : config.headerHeight + 40
+    : effectiveConfig.headerHeight + 40
 
   return {
     width: totalWidth,
     height: totalHeight,
-    headerHeight: config.headerHeight,
+    headerHeight: effectiveConfig.headerHeight,
     columns,
     rows,
     blocks,
