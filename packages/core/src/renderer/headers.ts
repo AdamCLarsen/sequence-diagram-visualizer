@@ -4,6 +4,8 @@ import type { Theme } from './theme'
 
 const BOX_HEIGHT = 36
 const BOX_RADIUS = 4
+const LABEL_LINE_HEIGHT = 16
+const BOX_VERTICAL_PADDING = 12
 
 export function drawHeaders(
   ctx: CanvasRenderingContext2D,
@@ -43,7 +45,9 @@ export function drawHeaders(
     const isSelected = selectedParticipants?.has(col.participantId)
     const dim = selectedParticipants && !isSelected
 
-    const boxY = (headerHeight - BOX_HEIGHT) / 2
+    const lines = col.labelLines.length > 0 ? col.labelLines : [col.label]
+    const boxHeight = Math.max(BOX_HEIGHT, lines.length * LABEL_LINE_HEIGHT + BOX_VERTICAL_PADDING)
+    const boxY = (headerHeight - boxHeight) / 2
 
     if (dim) ctx.globalAlpha = 0.35
 
@@ -56,7 +60,7 @@ export function drawHeaders(
       ctx.lineWidth = isSelected ? 2 : 1.5
 
       ctx.beginPath()
-      ctx.roundRect(col.x - col.width / 2 + 10, boxY, col.width - 20, BOX_HEIGHT, BOX_RADIUS)
+      ctx.roundRect(col.x - col.width / 2 + 10, boxY, col.width - 20, boxHeight, BOX_RADIUS)
       ctx.fill()
       ctx.stroke()
     }
@@ -66,16 +70,23 @@ export function drawHeaders(
       ctx.strokeStyle = theme.activationBorder
       ctx.lineWidth = 2
       ctx.beginPath()
-      ctx.roundRect(col.x - col.width / 2 + 10, boxY, col.width - 20, BOX_HEIGHT, BOX_RADIUS)
+      ctx.roundRect(col.x - col.width / 2 + 10, boxY, col.width - 20, boxHeight, BOX_RADIUS)
       ctx.stroke()
     }
 
-    // Label
+    // Label — stack lines for <br/>-separated aliases
     ctx.font = theme.headerFont
     ctx.fillStyle = theme.participantText
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(col.label, col.x, headerHeight / 2 + (isActor ? 14 : 0))
+
+    const labelCenterY = isActor
+      ? boxY + BOX_HEIGHT / 2 + 14 + ((lines.length - 1) * LABEL_LINE_HEIGHT) / 2
+      : boxY + boxHeight / 2
+    const firstLineY = labelCenterY - ((lines.length - 1) * LABEL_LINE_HEIGHT) / 2
+    for (let i = 0; i < lines.length; i++) {
+      ctx.fillText(lines[i], col.x, firstLineY + i * LABEL_LINE_HEIGHT)
+    }
 
     if (dim) ctx.globalAlpha = 1.0
   }

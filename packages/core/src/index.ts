@@ -90,6 +90,8 @@ export function createViewer(
   }
 
   const BOX_HEIGHT = 36
+  const HEADER_LINE_HEIGHT = 16
+  const HEADER_BOX_PADDING = 12
 
   /** Returns the participant ID under the screen point, or null */
   function hitTestHeader(screenX: number, screenY: number): string | null {
@@ -100,14 +102,15 @@ export function createViewer(
     const headerHeight = currentLayout.headerHeight
 
     if (diagramY < headerHeight) {
-      const boxY = (headerHeight - BOX_HEIGHT) / 2
-      if (diagramY >= boxY && diagramY <= boxY + BOX_HEIGHT) {
-        for (const col of currentLayout.columns) {
-          const boxLeft = col.x - col.width / 2 + 10
-          const boxRight = col.x + col.width / 2 - 10
-          if (diagramX >= boxLeft && diagramX <= boxRight) {
-            return col.participantId
-          }
+      for (const col of currentLayout.columns) {
+        const boxLeft = col.x - col.width / 2 + 10
+        const boxRight = col.x + col.width / 2 - 10
+        if (diagramX < boxLeft || diagramX > boxRight) continue
+        const lineCount = Math.max(1, col.labelLines.length)
+        const boxHeight = Math.max(BOX_HEIGHT, lineCount * HEADER_LINE_HEIGHT + HEADER_BOX_PADDING)
+        const boxY = (headerHeight - boxHeight) / 2
+        if (diagramY >= boxY && diagramY <= boxY + boxHeight) {
+          return col.participantId
         }
       }
     }
