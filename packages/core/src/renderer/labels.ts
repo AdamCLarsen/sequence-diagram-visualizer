@@ -115,6 +115,12 @@ export function drawLabel(
   const leftEdge = cameraX + 4
   const rightEdge = cameraX + viewportWidth / zoom - 4
 
+  // The arrow line is visible if its horizontal span overlaps the viewport,
+  // even when both endpoints lie off-screen.
+  const arrowLeft = Math.min(row.arrow.fromX, row.arrow.toX)
+  const arrowRight = Math.max(row.arrow.fromX, row.arrow.toX)
+  const hasVisibleArrow = arrowLeft <= viewRightEdge && arrowRight >= viewLeftEdge
+
   // For label-less arrows, draw source/destination annotations if enabled
   if (!row.label.text) {
     if (!showSourceLabels) return
@@ -125,11 +131,8 @@ export function drawLabel(
     const fromOff = fromOffLeft || fromOffRight
     const toOff = toOffLeft || toOffRight
     if (!fromOff && !toOff) return
-    // Need at least one visible lifeline — don't annotate fully off-screen arrows
-    const hasVisible =
-      (row.arrow.fromX >= viewLeftEdge && row.arrow.fromX <= viewRightEdge) ||
-      (row.arrow.toX >= viewLeftEdge && row.arrow.toX <= viewRightEdge)
-    if (!hasVisible) return
+    // Don't annotate arrows that are entirely off-screen
+    if (!hasVisibleArrow) return
     const arrowY = row.arrowY
     const srcY = arrowY - 8
     if (fromOff && row.fromLabel) {
@@ -149,13 +152,8 @@ export function drawLabel(
   const lines = splitLabelLines(row.label.text)
   const lineCount = Math.max(1, lines.length)
 
-  // Check if either endpoint lifeline is visible on screen
-  const hasVisibleLifeline =
-    (row.arrow.fromX >= viewLeftEdge && row.arrow.fromX <= viewRightEdge) ||
-    (row.arrow.toX >= viewLeftEdge && row.arrow.toX <= viewRightEdge)
-
   if (midX < viewLeft || midX > viewRight) {
-    if (!hasVisibleLifeline) return
+    if (!hasVisibleArrow) return
   }
 
   ctx.font = theme.labelFont
@@ -209,8 +207,8 @@ export function drawLabel(
   }
 
   // Draw source/destination labels when lifelines are off-screen
-  // Only show if at least one lifeline is visible (don't annotate fully off-screen arrows)
-  if (showSourceLabels && hasVisibleLifeline) {
+  // Only show if any part of the arrow line is visible (don't annotate fully off-screen arrows)
+  if (showSourceLabels && hasVisibleArrow) {
     const fromOffLeft = row.arrow.fromX < viewLeftEdge
     const fromOffRight = row.arrow.fromX > viewRightEdge
     const toOffLeft = row.arrow.toX < viewLeftEdge
